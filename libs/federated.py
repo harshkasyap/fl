@@ -1,8 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-import log
-log.logging.basicConfig(filename="federated.log", format=log.format, level=log.level)
+from libs import log
 
 def client_update(current_local_model, train_loader, optimizer, epoch):
     current_local_model.train()

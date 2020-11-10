@@ -11,7 +11,6 @@ from torch import optim
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 import os
 import json
-import log
 import random
 from tqdm import tqdm
 import torch.nn.functional as F
@@ -19,10 +18,10 @@ from collections import Counter
 from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
 
-import federated as fl
-import preprocess as P
-import similarity as S
-import model as nn_model
+from libs import federated as fl, log
+log.logging.basicConfig(filename="runfl.log", format=log.format, level=log.level)
+from poison import preprocess as P, similarity as S
+from nns import Model_MNIST as nn_mnist
 
 class FedArgs():
     def __init__(self):
@@ -30,22 +29,23 @@ class FedArgs():
         self.num_rounds = 2
         self.epochs = 2
         self.batch_size = 32
-        self.learning_rate = 0.01
+        self.learning_rate = 1e-4
+        self.weight_decay = 1e-5
         self.tb = SummaryWriter(comment="Mnist Federated training")
 
 def train(num_clients, num_rounds, train_loader, test_loader, losses_train, losses_test, 
           acc_train, acc_test, misclassification_rates, attack_success_rates,communication_rounds, clients_local_updates, global_update,
           source,target):
 
-  global_model = nn_model.Model_MNIST()
+  global_model = nn_mnist.Model_MNIST()
   global_model_copy = copy.copy(global_model)
 
-  client_models = [ nn_model.Model_MNIST() for _ in range(fedargs.num_clients)]
+  client_models = [ nn_mnist.Model_MNIST() for _ in range(fedargs.num_clients)]
 
   for model in client_models:
       model.load_state_dict(global_model_copy.state_dict()) # initial synchronizing with global model 
 
-  optimizer = [optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5) for model in client_models]
+  optimizer = [optim.Adam(model.parameters(), lr=fedargs.learning_rate, weight_decay=fedargs.weight_decay) for model in client_models]
  
   for r in range(num_rounds):
       loss = 0
@@ -64,7 +64,7 @@ def train(num_clients, num_rounds, train_loader, test_loader, losses_train, loss
 
       fl.server_aggregate(global_model, client_models)
 
-      test_loss, acc ,asr, mcr = nn_model.test(global_model, test_loader, source, target)
+      test_loss, acc ,asr, mcr = nn_mnist.test(global_model, test_loader, source, target)
       losses_test.append(test_loss)
       acc_test.append(acc)
       misclassification_rates.append(mcr)
