@@ -1,0 +1,38 @@
+version: "3.3"
+services:
+    tensorboard:
+        image: fl-tensorboard
+        build:
+            context: ./
+            dockerfile: ./docker/tensorboard.Dockerfile
+        ports:
+            - 45175:45175
+        volumes:
+            - ./:/fl
+        command:
+            [
+                "tensorboard",
+                "--logdir=/fl/runs",
+                "--port=45175",
+                "--bind_all",
+            ]
+
+    jupyter-server:
+        image: fl-jupyter
+        build:
+            context: ./
+            dockerfile: ./docker/jupyter.Dockerfile
+        ports:
+            - 42065:42065
+        volumes:
+            - ./:/fl
+        command:
+            [
+                "jupyter",
+                "notebook",
+                "--ip=*",
+                "--port=42065",
+                "--allow-root",
+                "--notebook-dir=./fl",
+                '--NotebookApp.token=fl'
+            ]
