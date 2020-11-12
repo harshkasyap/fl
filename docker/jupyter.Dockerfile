@@ -31,3 +31,6 @@ RUN pip3 install \
     transformers \
     # Progress bar to track experiments
     barbar
+
+# Install Other Required Packages
+RUN apt install -y vim

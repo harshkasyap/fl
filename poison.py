@@ -19,9 +19,16 @@ from itertools import islice
 from torch.utils.tensorboard import SummaryWriter
 
 from libs import federated as fl, log
-log.logging.basicConfig(filename="runfl.log", format=log.format, level=log.level)
-from poison import preprocess as P, similarity as S
-from nns import Model_MNIST as nn_mnist
+from process import preprocess as P
+from mlp import Model_MNIST as nn_mnist
+
+ap = argparse.ArgumentParser(description="Running Data Poisoning Attack on Federated Learning")
+ap.add_argument("-savelogs", required = False, action='store_true', help = "Save Logs To File")
+args = vars(ap.parse_args())
+if args["savelogs"]:
+  log.logging.basicConfig(filename="./logs/runfl.log", format=log.format, level=log.level)
+else:
+  log.logging.basicConfig(format=log.format, level=log.level)
 
 class FedArgs():
     def __init__(self):
