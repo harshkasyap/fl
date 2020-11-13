@@ -42,6 +42,7 @@ epochs = 5
 for epoch in range(epochs):
     loss = 0
     for batch_features, _ in train_loader:
+
         # reshape mini-batch data to [N, 784] matrix
         # load it to the active device
         batch_features = batch_features.view(-1, 784).to(device)
@@ -54,6 +55,7 @@ for epoch in range(epochs):
         outputs = model(batch_features)
         
         log.logger.debug("batch_features shape " + str(batch_features.shape))
+        log.logger.debug("_ shape " + str(_.shape))
         log.logger.debug("outputs shape " + str(outputs.shape))
 
         # compute training reconstruction loss
