@@ -15,6 +15,14 @@ def split_data(train_data, clients):
     splitted_data = torch.utils.data.random_split(train_data, [int(train_data.data.shape[0] / clients) for _ in range(clients)])
     return splitted_data
 
+def load_client_data(train_data, batch_size, test_data = None, test_batch_size= None):
+    train_loader = [torch.utils.data.DataLoader(x, batch_size=batch_size, shuffle=True) for x in train_data]
+    test_loader = None
+    if test_data != None and test_batch_size != None:
+        test_loader = torch.utils.data.DataLoader(test_data, batch_size=test_batch_size, shuffle=True) 
+
+    return train_loader, test_loader
+
 def split_label_wise(train_data):
     label_wise_data = []
     for i in range(10):
@@ -53,12 +61,6 @@ def distribute_data_in_clients(label_wise_data):
             loc  += ele
                         
     return clients_data
-
-def load_client_data(train_data, test_data, batch_size):
-    train_loader = [torch.utils.data.DataLoader(x, batch_size=batch_size, shuffle=True) for x in train_data]
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size = batch_size, shuffle=True) 
-
-    return train_loader, test_loader
 
 def poison_label(client_id, sourcelabel, targetlabel, count_poison, client_data):
     label_poisoned = 0

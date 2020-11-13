@@ -16,9 +16,9 @@ log.init(__file__, args["savelogs"])
 
 class FedArgs():
   def __init__(self):
-    self.num_clients = 3
-    self.epochs = 5
-    self.local_rounds = 10
+    self.num_clients = 5
+    self.epochs = 2
+    self.local_rounds = 5
     self.client_batch_size = 32
     self.test_batch_size = 128
     self.learning_rate = 1e-4
@@ -32,11 +32,6 @@ clients_data = P.split_data(train_data, fedargs.num_clients)
 cl_train_loaders, _ = P.load_client_data(clients_data, fedargs.client_batch_size)
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=fedargs.client_batch_size, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=fedargs.test_batch_size, shuffle=False)
-
-data, target = next(iter(cl_train_loaders[0]))
-attacker_data = []
-attacker_data.append([data[0], target[0]])
-attack_loader = torch.utils.data.DataLoader(attacker_data, shuffle=True)
 
 # Centralized Training
 central_model_file = './dumps/central_mnist_model.sav'
@@ -68,10 +63,7 @@ for epoch in range(fedargs.epochs):
   # Average the client updates
   global_model = fl.federated_avg(client_models)
 
-  if epoch == 2:
-    global_model, global_train_loss = fl.ascent_update("0", copy.deepcopy(global_model), attack_loader, fedargs.learning_rate, fedargs.weight_decay, fedargs.local_rounds)
-
   # Test Epoch
   test_output = nn_mnist.test(global_model, test_loader)
-  log.jsoninfo(test_output, "Test Outut after Epoch " + str(epoch + 1))
+  log.jsoninfo(test_output, "Test Outut after Epoch")
   log.modeldebug(global_model, "Global Model " + str(epoch + 1))

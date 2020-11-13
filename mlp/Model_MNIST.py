@@ -28,40 +28,61 @@ class Model_MNIST(nn.Module):
     output = F.log_softmax(x, dim=1)
     return output
 
-def test(model, test_loader, actual_prediction, target_prediction):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    attack_success_count = 0
-    instances = 0
-    misclassifications = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()
-            pred = output.argmax(dim=1, keepdim=True)
-            for i in range(len(target)):
-              if target[i] == actual_prediction:
-                instances += 1
-              if target[i] != pred[i]:  
-                if target[i] == actual_prediction and pred[i] == target_prediction:
-                  attack_success_count += 1
-                else:
-                  misclassifications += 1
-            correct += pred.eq(target.view_as(pred)).sum().item()
+def auditAttack(target, pred, actual_prediction, target_prediction, attack_dict):
+  for i in range(len(target)):
+    if target[i] == actual_prediction:
+      attack_dict["instances"] += 1
+    if target[i] != pred[i]:  
+      if target[i] == actual_prediction and pred[i] == target_prediction:
+        attack_dict["attack_success_count"] += 1
+      else:
+        attack_dict["misclassifications"] += 1
+  
+  return attack_dict
 
-    test_loss /= len(test_loader.dataset)
-    acc = correct / len(test_loader.dataset)
+def test(model, test_loader, actual_prediction = None, target_prediction = None):
+  model.eval()
+  test_output = {
+    "test_loss": 0,
+    "correct": 0,
+    "accuracy": 0,
+    "attack": {
+      "instances": 0,
+      "misclassifications": 0,
+      "attack_success_count": 0,
+      "misclassification_rate": 0,
+      "attack_success_rate": 0
+    }
+  }
 
-    attack_success_rate = attack_success_count/instances
-    attack_success_rate *= 100
-    misclassification_rate = misclassifications/instances
+  with torch.no_grad():
+    for data, target in test_loader:
+      output = model(data)
+      test_output["test_loss"] += F.nll_loss(output, target, reduction='sum').item()
+      pred = output.argmax(dim=1, keepdim=True)
+      if actual_prediction != None and target_prediction != None:
+        test_output["attack"] = auditAttack(target, pred, actual_prediction, target_prediction, test_output["attack"])
+      test_output["correct"] += pred.eq(target.view_as(pred)).sum().item()
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), 100* acc ))
-    print('Test Samples with target label {} : {}'.format(actual_prediction,instances))
-    print('Test Samples predicted as  {} : {}'.format(target_prediction,attack_success_count))
-    print('Test Samples with target label {} misclassified : {}'.format(actual_prediction,misclassifications))
-    print("Attack success rate",attack_success_rate)
-    print("misclassification_rate", misclassification_rate)
-    return test_loss, acc , attack_success_rate, misclassification_rate
+  test_output["test_loss"] /= len(test_loader.dataset)
+  test_output["accuracy"] = (test_output["correct"] / len(test_loader.dataset)) * 100
+
+  if actual_prediction != None and target_prediction != None:
+    test_output["attack"]["attack_success_rate"] = (test_output["attack"]["attack_success_count"]/test_output["attack"]["instances"]) * 100
+    test_output["attack"]["misclassification_rate"] = test_output["attack"]["misclassifications"]/test_output["attack"]["instances"]
+
+  return test_output
+
+def train(model, train_loader, optimizer, epochs):
+  train_loss = {}
+  model.train()
+  for epoch in range(epochs):
+    for batch_idx, (data, target) in enumerate(train_loader):
+      optimizer.zero_grad()
+      output = model(data)
+      loss = F.nll_loss(output, target)
+      loss.backward()
+      optimizer.step()
+
+    train_loss["epoch " + str(epoch + 1)] = loss.item()
+  return train_loss
