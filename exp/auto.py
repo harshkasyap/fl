@@ -351,7 +351,7 @@ print("Attack success rate", attack_success_rate)
 
 len(dataAE)
 
-trd, tsd = torch.utils.data.random_split(dataAE, [1344, 156])
+trd, tsd = torch.utils.data.random_split(dataAE, [100, 50])
 
 len(trd[0])
 
