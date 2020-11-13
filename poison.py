@@ -23,12 +23,9 @@ from process import preprocess as P
 from mlp import Model_MNIST as nn_mnist
 
 ap = argparse.ArgumentParser(description="Running Data Poisoning Attack on Federated Learning")
-ap.add_argument("-savelogs", required = False, action='store_true', help = "Save Logs To File")
+ap.add_argument("--savelogs", required = False, help = "Save Logs To File (info | debug)")
 args = vars(ap.parse_args())
-if args["savelogs"]:
-  log.logging.basicConfig(filename="./logs/runfl.log", format=log.format, level=log.level)
-else:
-  log.logging.basicConfig(format=log.format, level=log.level)
+log.init(args["savelogs"], "./logs/poison.log")
 
 class FedArgs():
     def __init__(self):
