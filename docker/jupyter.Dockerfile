@@ -21,7 +21,11 @@ RUN pip3 install \
     # Upgraded version of Tensorboard with more features
     tensorflow-tensorboard tensorboard \
     # install matplotlib
-    matplotlib
+    matplotlib\
+    # install pandas
+    pandas\
+# Install cv2
+RUN conda install -c conda-forge opencv
 
 # Here we use a base image by its name - "jupyter-base"
 FROM jupyter-base
