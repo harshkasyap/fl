@@ -26,6 +26,8 @@ RUN pip3 install \
     pandas\
 # Install cv2
 RUN conda install -c conda-forge opencv
+# Install Shap
+RUN conda install -c conda-forge shap
 
 # Here we use a base image by its name - "jupyter-base"
 FROM jupyter-base
