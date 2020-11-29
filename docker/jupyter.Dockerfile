@@ -24,10 +24,10 @@ RUN pip3 install \
     matplotlib\
     # install pandas
     pandas\
-# Install cv2
-RUN conda install -c conda-forge opencv
-# Install Shap
-RUN conda install -c conda-forge shap
+    # Install cv2
+    opencv-python-headless
+    # Install Shap
+    shap
 
 # Here we use a base image by its name - "jupyter-base"
 FROM jupyter-base
