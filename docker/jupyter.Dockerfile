@@ -28,6 +28,12 @@ RUN pip3 install \
     opencv-python-headless
     # Install Shap
     shap
+    # install tensorflow
+    tensorflow
+    # install sklearn
+    sklearn
+    # install scikit-image
+    scikit-image
 
 # Here we use a base image by its name - "jupyter-base"
 FROM jupyter-base
