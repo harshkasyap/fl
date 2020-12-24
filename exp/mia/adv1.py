@@ -124,8 +124,8 @@ shadow_optim = optim.Adam(shadow_net.parameters(), lr=lr)
 attack_net = models.mlleaks_mlp(n_in=k).to(device)
 attack_net.apply(models.weights_init)
 
-#attack_loss = nn.BCEWithLogitsLoss()
-attack_loss = nn.BCELoss()
+attack_loss = nn.BCEWithLogitsLoss()
+#attack_loss = nn.BCELoss()
 attack_optim = optim.Adam(attack_net.parameters(), lr=lr)
 
 train(shadow_net, shadow_train_loader, cifar10_testloader, shadow_optim, shadow_loss, n_epochs=10, classes=classes)

@@ -194,12 +194,12 @@ class mlleaks_mlp(nn.Module):
         super(mlleaks_mlp, self).__init__()
         
         self.hidden = nn.Linear(n_in, n_hidden)
-        #self.bn = nn.BatchNorm1d(n_hidden)
+        self.bn = nn.BatchNorm1d(n_hidden)
         self.output = nn.Linear(n_hidden, n_out)
         
     def forward(self, x): 
         x = F.sigmoid(self.hidden(x))
-        #x = self.bn(x)
+        x = self.bn(x)
         out = self.output(x)
         #out = F.sigmoid(self.output(x))
         
