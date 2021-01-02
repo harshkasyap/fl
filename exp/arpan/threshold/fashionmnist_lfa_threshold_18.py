@@ -710,11 +710,12 @@ print("Attack success rate", attack_success_rate)
 
 
 
-for t in range(1.7,2.1):
-  print("Running  Federated Learning with 60% attacker and defense")
+for t in range(5):
+  thshld = t*0.1 + 1.7
+  print('Running  Federated Learning with 60% attacker and defense, threshold ={}'.format(thshld))
   local_data_fl = copy.copy(clients_data)
   attackers = [1,2,3,4,5,6,7,9,13,15,16,17,19,20,21,23,25,27]
-  poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,8,3,120,local_data_fl, test_data_1, backdoor_test_data,t,True)
+  poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,8,3,120,local_data_fl, test_data_1, backdoor_test_data,thshld,True)
   global_accuracy_list.append(acc_test)
   global_backdoor_accuracy_list.append(backdoor_acc_test)
   global_communication_rounds.append(rounds)
