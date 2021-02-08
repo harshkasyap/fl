@@ -70,9 +70,6 @@ for epoch in range(fedargs.epochs):
   # Average the client updates
   global_model = fl.federated_avg(client_models)
 
-  if epoch == 4:
-    global_model, global_train_loss = fl.ascent_update("0", copy.deepcopy(global_model), attack_loader, 0.01, fedargs.weight_decay, fedargs.local_rounds)
-
   # Test Epoch
   test_output = nn_mnist.test(global_model, test_loader)
   log.jsoninfo(test_output, "Test Outut after Epoch " + str(epoch + 1))
