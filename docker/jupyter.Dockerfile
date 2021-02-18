@@ -17,21 +17,23 @@ RUN pip3 install \
     # Numpy and Pandas are required a-priori
     numpy pandas \
     # PyTorch with CUDA 10.2 support and Torchvision
-    torch torchvision \
+    torch torchvision
+    
+RUN pip3 install \
     # Upgraded version of Tensorboard with more features
-    tensorflow-tensorboard tensorboard \
+    # tensorflow-tensorboard tensorboard \
     # install matplotlib
-    matplotlib\
+    matplotlib \
     # install pandas
-    pandas\
+    pandas \
     # Install cv2
-    opencv-python-headless
+    opencv-python-headless \
     # Install Shap
-    shap
+    shap \
     # install tensorflow
-    tensorflow
+    tensorflow \
     # install sklearn
-    sklearn
+    sklearn \
     # install scikit-image
     scikit-image
 
