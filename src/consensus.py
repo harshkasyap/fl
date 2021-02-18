@@ -5,6 +5,7 @@ import torch
 import pickle
 from torch import optim
 from pathlib import Path
+from torch.utils.tensorboard import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
 from libs import federated as fl, log
@@ -19,12 +20,13 @@ log.init(__file__, args["savelogs"])
 class FedArgs():
   def __init__(self):
     self.num_clients = 4
-    self.epochs = 10
-    self.local_rounds = 10
+    self.epochs = 5
+    self.local_rounds = 9
     self.client_batch_size = 32
     self.test_batch_size = 128
     self.learning_rate = 1e-4
     self.weight_decay = 1e-5
+    self.tb = SummaryWriter('../runs/consensus', comment="Consesnus-based (Info) Mnist Federated training")
 
 fedargs = FedArgs()    
 
@@ -41,7 +43,7 @@ attacker_data.append([data[0], target[0]])
 attack_loader = torch.utils.data.DataLoader(attacker_data, shuffle=True)
 
 # Centralized Training
-central_model_file = './dumps/central_mnist_model.sav'
+central_model_file = '../dumps/central_mnist_model.sav'
 if Path(central_model_file).is_file():
   central_model = pickle.load(open(central_model_file, 'rb'))
 else:
@@ -64,6 +66,8 @@ for epoch in range(fedargs.epochs):
   for client, cl_train_loader in enumerate(cl_train_loaders):
     str_client = str(client + 1)
     client_models[str_client], client_train_loss = fl.client_update(str_client, copy.deepcopy(global_model), cl_train_loader, fedargs.learning_rate, fedargs.weight_decay, fedargs.local_rounds)
+    for local_epoch, loss in enumerate(list(client_train_loss.values())):
+      fedargs.tb.add_scalars("Training Loss/" + str(client + 1), {str(epoch + 1): loss}, local_epoch + 1)
     log.jsoninfo(client_train_loss, "Federated Training loss, Client " + str_client)
     log.modeldebug(client_models[str_client], "Client Update " + str_client)
   
@@ -73,4 +77,8 @@ for epoch in range(fedargs.epochs):
   # Test Epoch
   test_output = nn_mnist.test(global_model, test_loader)
   log.jsoninfo(test_output, "Test Outut after Epoch " + str(epoch + 1))
+  fedargs.tb.add_scalar('FL Testing Loss', global_model["test_loss"], epoch + 1)
+  fedargs.tb.add_scalar('FL Accuracy', global_model["accuracy"], epoch + 1)
   log.modeldebug(global_model, "Global Model " + str(epoch + 1))
+
+fedargs.tb.close()
