@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset, TensorDataset
 import os
 import random
 from tqdm import tqdm
+import torch.nn as nn
 import torch.nn.functional as F
 from collections import Counter
 from itertools import islice
@@ -52,88 +53,57 @@ def load(train_data, test_data):
 
   return train_loader, test_loader
 
-# declare a transformation for Fashion MNIST 
-
-transform_train = transforms.Compose([
-    transforms.RandomCrop(32, padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-# Normalizing the test images
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-# neural network architecture declaration
-
-class Model_FashionMNIST(nn.Module):
-  def __init__(self):
-    super(Model_FashionMNIST, self).__init__()
-    self.conv1 = nn.Conv2d(1, 32, 3, 1)
-    self.conv2 = nn.Conv2d(32, 64, 3, 1)
-    self.dropout1 = nn.Dropout2d(0.25)
-    self.dropout2 = nn.Dropout2d(0.5)
-    self.fc1 = nn.Linear(9216, 128)
-    self.fc2 = nn.Linear(128, 10)
 
 
+transform_train = transforms.Compose(
+    [transforms.Grayscale(),
+     transforms.ToTensor()])
+
+transform_test = transforms.Compose(
+    [transforms.Grayscale(),
+     transforms.ToTensor()])
+
+classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+
+
+class Model_CIFAR(nn.Module):
+  def __init__(self,xDim=32,yDim=32,numC=10):   
+    super(Model_CIFAR,self).__init__()
+      
+    numConvs1 = 5
+    convSize1 = 7
+    numConvs2 = 10
+    convSize2 = 7
+    numNodesToFC = numConvs2*(xDim-(convSize1-1)-(convSize2-1))*(yDim-(convSize1-1)-(convSize2-1))
+    
+    self.cnv1 = nn.Conv2d(1, numConvs1, convSize1)
+    self.cnv2 = nn.Conv2d(numConvs1, numConvs2, convSize2)
+    
+    fcSize1 = 400
+    fcSize2 = 80
+    
+    self.ful1 = nn.Linear(numNodesToFC,fcSize1)
+    self.ful2 = nn.Linear(fcSize1, fcSize2)
+    self.ful3 = nn.Linear(fcSize2,numC)
+        
   def forward(self,x):
-    x = self.conv1(x)
-    x = F.relu(x)
-    x = self.conv2(x)
-    x = F.relu(x)
-    x = F.max_pool2d(x, 2)
-    x = self.dropout1(x)
-    x = torch.flatten(x, 1)
-    x = self.fc1(x)
-    x = F.relu(x)
-    x = self.dropout2(x)
-    x = self.fc2(x)
-    output = F.log_softmax(x, dim=1)
-    return output
+    x = F.elu(self.cnv1(x)) 
+    x = F.elu(self.cnv2(x)) 
+    x = x.view(-1,self.num_flat_features(x)) 
+    x = F.elu(self.ful1(x)) 
+    x = F.elu(self.ful2(x)) 
+    x = self.ful3(x)
+    return x
 
-cfg = {
-    'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
-    'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
-}
+  def num_flat_features(self, x):
+    size = x.size()[1:]
+    num_features = 1
+    for s in size:
+        num_features *= s
+    return num_features
 
-class VGG(nn.Module):
-    def __init__(self, vgg_name):
-        super(VGG, self).__init__()
-        self.features = self._make_layers(cfg[vgg_name])
-        self.classifier = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Linear(512, 10)
-        )
 
-    def forward(self, x):
-        out = self.features(x)
-        out = out.view(out.size(0), -1)
-        out = self.classifier(out)
-        output = F.log_softmax(out, dim=1)
-        return output
-
-    def _make_layers(self, cfg):
-        layers = []
-        in_channels = 3
-        for x in cfg:
-            if x == 'M':
-                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-            else:
-                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
-                           nn.BatchNorm2d(x),
-                           nn.ReLU(inplace=True)]
-                in_channels = x
-        layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
-        return nn.Sequential(*layers)
 
 class AE(nn.Module):
     def __init__(self):
@@ -175,7 +145,10 @@ def client_update(current_local_model, train_loader, optimizer, epoch):
       for batch_idx, (data, target) in enumerate(train_loader):
         optimizer.zero_grad()
         output = current_local_model(data)
-        loss = F.nll_loss(output, target)
+        #loss = F.nll_loss(output, target)
+        #criterion = nn.CrossEntropyLoss()
+        #loss = criterion(output,target)
+        loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
@@ -249,7 +222,10 @@ def test(model, test_loader, actual_prediction, target_prediction):
         for data, target in test_loader:
             #print(len(target))
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            #test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            test_loss += F.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
+            #criterion = nn.CrossEntropyLoss()
+            #test_loss += criterion(output, target).item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             for i in range(len(target)):
               if target[i] == actual_prediction:
@@ -398,10 +374,13 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
 
   # Initialize model
   #global_model = Model_FashionMNIST()
-  global_model =  VGG('VGG19')
+  #global_model =  VGG('VGG19')
+  global_model = Model_CIFAR()
   global_model_copy = copy.copy(global_model)
   # create K (num_clients)  no. of client_models 
-  client_models = [ VGG('VGG19') for _ in range(num_clients)]
+  #client_models = [ VGG('VGG19') for _ in range(num_clients)]
+  client_models = [ Model_CIFAR() for _ in range(num_clients)]
+
 
   # synchronize with global_model
   for model in client_models:
@@ -409,7 +388,8 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
 
   # create optimizers for client_models
   #optimizer = [optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5) for model in client_models]
-  optimizer = [optim.SGD(model.parameters(), lr=0.1) for model in client_models]
+  #optimizer = [optim.SGD(model.parameters(), lr=0.1) for model in client_models]
+  optimizer = [optim.SGD(model.parameters(), lr=0.001, momentum=0.9) for model in client_models]
 
   # List containing info about learning 
 
@@ -421,9 +401,11 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
   batch_shap = next(iter(shap_tr_loader))
   images_shap, _ = batch_shap
   background = images_shap[:100]
-  #n_test_images = 5
-  #test_images = images_shap[100:100+n_test_images]
-  test_images = torch.zeros(1,1,28,28)
+  n_test_images = 1
+  #test_images = images_shap[101:101+n_test_images]
+  #print(len(test_images))
+  #print(test_images.shape)
+  test_images = torch.zeros(1,1,32,32)
   #images.size()
  
   for r in range(num_rounds):
@@ -435,13 +417,15 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
       if(defense):
         
         model_to_aggregate = []
-        threshold = 1.8
+        threshold = 2
         print('round : {}'.format(r))
         id = 0
         shap_data_temp = []
         for model in client_models:
           e = shap.DeepExplainer(model, background)
           shap_values = e.shap_values(test_images)
+          #shap.image_plot(shap_values, -test_images[:1])
+          
           #print(shap_values)
           print('client id : {}'.format(id))
           id += 1
@@ -451,11 +435,12 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
             #print(torch.sum(torch.tensor(shap_values[i])))
             shap_data_temp_model.append(torch.sum(torch.tensor(shap_values[i])))
           shap_data_temp.append(shap_data_temp_model)
-          # rehspae the shap value array and test image array for visualization 
-          #shap_numpy2 = [np.swapaxes(np.swapaxes(s, 1, -1), 1, 2) for s in shap_values]
-          #test_numpy2 = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
+           #rehspae the shap value array and test image array for visualization 
+          shap_numpy2 = [np.swapaxes(np.swapaxes(s, 1, -1), 1, 2) for s in shap_values]
+          test_numpy2 = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
           # plot the feature attributions
           #shap.image_plot(shap_numpy2, -test_numpy2)
+          shap.image_plot(shap_numpy2, -test_numpy2, None, 20, 0.2, 0.2, None, False)
           temp = []
           for shap_label in shap_data_temp_model:
             temp.append(shap_label.detach().item())
@@ -482,6 +467,7 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
         losses_train.append(loss)
         communication_rounds.append(r+1)
         server_aggregate_defense(global_model, client_models, model_to_aggregate)
+        
       else:
         temp_updates_clients = []
         for i in range(num_clients):
@@ -515,14 +501,14 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
 
 num_clients = 50         # total number of clients (K)
 #num_selected = 6         #  m no of clients (out of K) are selected at radom at each round
-num_rounds = 30
+num_rounds = 40
 epochs = 2              # number of local epoch
 batch_size = 32          # local minibatch size
 learning_rate = 0.01       # local learning rate
 
 def run(attackers_id, source_label, poisoned_label,sample_to_poison,client_data, test_data, backdoor_test_data,defense_flag):
-  participated_clients = 20
-  #no_rounds = 2
+  participated_clients = 30
+  #no_rounds = 2.1
   total_poisoned_samples = 0
   total_poisoned_samples_lfa = 0
   total_poisoned_samples_ba = 0
@@ -534,14 +520,14 @@ def run(attackers_id, source_label, poisoned_label,sample_to_poison,client_data,
     total_poisoned_samples += poison_label(id,source_label,poisoned_label,sample_to_poison,client_data)
   #no_attacker_lfa = len(attackers_id) / 2
   #no_attacker_ba = len(attackers_id) - no_attacker_lfa
-  #for id in attackers_id:
-  #  total_poisoned_samples += insert_trojan(client_data,id,poisoned_label,sample_to_poison)
+  ##for id in attackers_id:
+  ##  total_poisoned_samples += insert_trojan(client_data,id,poisoned_label,sample_to_poison)
   #for i in range(len(attackers_id)):
   #  if i < no_attacker_lfa:
   #    total_poisoned_samples_lfa += poison_label(attackers_id[i],source_label,poisoned_label,sample_to_poison,client_data)
   #  else:
   #    total_poisoned_samples_ba += insert_trojan(client_data,attackers_id[i],poisoned_label,sample_to_poison)
-  
+  #
   #total_poisoned_samples = total_poisoned_samples + total_poisoned_samples_ba + total_poisoned_samples_lfa
   #print("label flipped: ", total_poisoned_samples_lfa)
   #print("trojan inserted: ", total_poisoned_samples_ba)
@@ -600,7 +586,7 @@ print("Accuracy lists : ",global_accuracy_list)
 print("Running  Baseline FL")
 local_data_fl = copy.copy(clients_data)
 attackers = []
-poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,2,500,local_data_fl, test_data_1, backdoor_test_data,False)
+poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,2,-1,local_data_fl, test_data_1, backdoor_test_data,False)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
 global_communication_rounds.append(rounds)
@@ -613,16 +599,27 @@ global_ae_data.append(autoencoder_results)
 global_euclid_data.append(euclid_dists)
 global_shap_data.append(shap_data)
 
-print("Deatils of process till now")
-print("Poison sample list : ",global_poison_sample_list)
-print("Accuracy lists : ",global_accuracy_list)
-
+print("Running  Federated Learning with 70% attacker")
+local_data_fl = copy.copy(clients_data)
+attackers = [1,2,3,5,7,9,11,13,15,16,17,19,20,21,23,24,25,27]
+poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,2,-1,local_data_fl, test_data_1, backdoor_test_data,True)
+global_accuracy_list.append(acc_test)
+global_backdoor_accuracy_list.append(backdoor_acc_test)
+global_communication_rounds.append(rounds)
+global_poison_sample_list.append(poisoned_sample)
+global_attack_success_rates_list.append(attack_success_rate)
+global_misclassification_rates.append(misclassification_rates)
+global_target_misclassification_rates.append(target_misclassification_rates)
+global_client_updates.append(client_local_updates)
+global_ae_data.append(autoencoder_results)
+global_euclid_data.append(euclid_dists)
+global_shap_data.append(shap_data)
 
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [1,3,5,7,9,11,13,15,17]
-poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,8,3,500,local_data_fl, test_data_1, backdoor_test_data,False)
+attackers = [1,2,3,5,7,9,11,13,15,16,17,19,20,21,23,24,25,27]
+poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,2,-1,local_data_fl, test_data_1, backdoor_test_data,False)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
 global_communication_rounds.append(rounds)
@@ -635,25 +632,15 @@ global_ae_data.append(autoencoder_results)
 global_euclid_data.append(euclid_dists)
 global_shap_data.append(shap_data)
 
-
-
-print("Summary")
-print("No. of attackers", len(attackers))
-print("No. of poisonous samples", poisoned_sample)
-print("After training accuracy",acc_test)
-print("Backdoor accuracy",backdoor_acc_test)
-
-
-
-
-
-
-with open('cifar_acc','wb') as fp:
+with open('accuracy','wb') as fp:
   pickle.dump(global_accuracy_list,fp)
-with open('cifar_rounds','wb') as fp:
+with open('rounds','wb') as fp:
   pickle.dump(global_communication_rounds,fp)
-with open('cifar_asr','wb') as fp:
+with open('mcr','wb') as fp:
+  pickle.dump(global_misclassification_rates,fp)
+with open('t','wb') as fp:
+  pickle.dump(global_target_misclassification_rates,fp)
+with open('asr','wb') as fp:
   pickle.dump(global_attack_success_rates_list,fp)
-
-
-
+with open('shap','wb') as fp:
+  pickle.dump(global_shap_data,fp)  
