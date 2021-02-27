@@ -617,17 +617,17 @@ global_ae_data.append(autoencoder_results)
 global_euclid_data.append(euclid_dists)
 global_shap_data.append(shap_data)
 
-with open('accuracy_3','wb') as fp:
+with open('accuracy_6','wb') as fp:
   pickle.dump(global_accuracy_list,fp)
-with open('rounds_3','wb') as fp:
+with open('rounds_6','wb') as fp:
   pickle.dump(global_communication_rounds,fp)
-with open('mcr_3','wb') as fp:
+with open('mcr_6','wb') as fp:
   pickle.dump(global_misclassification_rates,fp)
-with open('tmcr_3','wb') as fp:
+with open('tmcr_6','wb') as fp:
   pickle.dump(global_target_misclassification_rates,fp)
-with open('asr_3','wb') as fp:
+with open('asr_6','wb') as fp:
   pickle.dump(global_attack_success_rates_list,fp)
-with open('shap_3','wb') as fp:
+with open('shap_6','wb') as fp:
   pickle.dump(global_shap_data,fp)  
-with open('basr_3','wb') as fp:
+with open('basr_6','wb') as fp:
   pickle.dump(global_backdoor_accuracy_list,fp)
