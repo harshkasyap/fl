@@ -480,7 +480,7 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
       
        # calculate test accuracy after the current round
       test_loss, acc ,asr, mcr ,tmcr = test(global_model, test_loader, source, target)
-      backdoor_test_loss, back_acc = backdoor_test(global_model, backdoor_test_loader, 2)
+      backdoor_test_loss, back_acc = backdoor_test(global_model, backdoor_test_loader, target)
       losses_test.append(test_loss)
       acc_test.append(acc)
       backdoor_acc_test.append(back_acc)
