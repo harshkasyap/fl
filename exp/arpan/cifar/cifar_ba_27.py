@@ -586,7 +586,7 @@ print("Accuracy lists : ",global_accuracy_list)
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [2,5,8,13,16,19,21,24,26]
+attackers = [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,19,20,21,22,23,24,25,26,27,28]
 poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,7,500,local_data_fl, test_data_1, backdoor_test_data,True)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
@@ -603,7 +603,7 @@ global_shap_data.append(shap_data)
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [2,5,8,13,16,19,21,24,26]
+attackers = [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,19,20,21,22,23,24,25,26,27,28]
 poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,7,500,local_data_fl, test_data_1, backdoor_test_data,False)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
@@ -617,17 +617,17 @@ global_ae_data.append(autoencoder_results)
 global_euclid_data.append(euclid_dists)
 global_shap_data.append(shap_data)
 
-with open('accuracy_9','wb') as fp:
+with open('accuracy_27','wb') as fp:
   pickle.dump(global_accuracy_list,fp)
-with open('rounds_9','wb') as fp:
+with open('rounds_27','wb') as fp:
   pickle.dump(global_communication_rounds,fp)
-with open('mcr_9','wb') as fp:
+with open('mcr_27','wb') as fp:
   pickle.dump(global_misclassification_rates,fp)
-with open('tmcr_9','wb') as fp:
+with open('tmcr_27','wb') as fp:
   pickle.dump(global_target_misclassification_rates,fp)
-with open('asr_9','wb') as fp:
+with open('asr_27','wb') as fp:
   pickle.dump(global_attack_success_rates_list,fp)
-with open('shap_9','wb') as fp:
+with open('shap_27','wb') as fp:
   pickle.dump(global_shap_data,fp)  
-with open('basr_9','wb') as fp:
+with open('basr_27','wb') as fp:
   pickle.dump(global_backdoor_accuracy_list,fp)
