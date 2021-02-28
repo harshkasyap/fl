@@ -247,13 +247,13 @@ def test(model, test_loader, actual_prediction, target_prediction):
     targeted_misclassification_rate = targeted_misclassification/instances
     #misclassification_rate *= 100
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), 100* acc ))
-    print('Test Samples with target label {} : {}'.format(actual_prediction,instances))
-    print('Test Samples predicted as  {} : {}'.format(target_prediction,attack_success_count))
-    print('Test Samples with target label {} misclassified : {}'.format(actual_prediction,misclassifications))
-    print("Attack success rate",attack_success_rate)
-    print("misclassification_rate", misclassification_rate)
+    #print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        #test_loss, correct, len(test_loader.dataset), 100* acc ))
+    #print('Test Samples with target label {} : {}'.format(actual_prediction,instances))
+    #print('Test Samples predicted as  {} : {}'.format(target_prediction,attack_success_count))
+    #print('Test Samples with target label {} misclassified : {}'.format(actual_prediction,misclassifications))
+    #print("Attack success rate",attack_success_rate)
+    #print("misclassification_rate", misclassification_rate)
     return test_loss, acc , attack_success_rate, misclassification_rate, targeted_misclassification_rate
 
 def backdoor_test(model, backdoor_test_loader, backdoor_target):
@@ -427,7 +427,7 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
           #shap.image_plot(shap_values, -test_images[:1])
           
           #print(shap_values)
-          print('client id : {}'.format(id))
+          #print('client id : {}'.format(id))
           id += 1
           shap_data_temp_model = []
           #print('length : {}'.format(len(shap_values)))
@@ -436,25 +436,25 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
             shap_data_temp_model.append(torch.sum(torch.tensor(shap_values[i])))
           shap_data_temp.append(shap_data_temp_model)
            #rehspae the shap value array and test image array for visualization 
-          shap_numpy2 = [np.swapaxes(np.swapaxes(s, 1, -1), 1, 2) for s in shap_values]
-          test_numpy2 = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
+          #shap_numpy2 = [np.swapaxes(np.swapaxes(s, 1, -1), 1, 2) for s in shap_values]
+          #test_numpy2 = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
           # plot the feature attributions
           #shap.image_plot(shap_numpy2, -test_numpy2)
-          shap.image_plot(shap_numpy2, -test_numpy2, None, 20, 0.2, 0.2, None, False)
+          #shap.image_plot(shap_numpy2, -test_numpy2, None, 20, 0.2, 0.2, None, False)
           temp = []
           for shap_label in shap_data_temp_model:
             temp.append(shap_label.detach().item())
           z_score = np.abs(stats.zscore(temp))
-          print(z_score)
+          #print(z_score)
           flag = True
           for j in range(len(z_score)):
             if z_score[j] > threshold:
-              print('client {} not appended'.format(id))
+              #print('client {} not appended'.format(id))
               flag = False
               break
           
           if flag == True:
-            print('client {} is aggregated'.format(id))
+            #print('client {} is aggregated'.format(id))
             model_to_aggregate.append(copy.copy(model))
             
         shap_data_roundwise.append(shap_data_temp)
@@ -487,13 +487,13 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
       misclassification_rates.append(mcr)
       targeted_misclassification_rates.append(tmcr)
       attack_success_rates.append(asr)
-      print("attack success rate : ",asr)
-      print("misclassification rate ",mcr)
+      #print("attack success rate : ",asr)
+      #print("misclassification rate ",mcr)
       #attack_success_rate = asr
       
 
       print('%d-th round' % (r+1))
-      print('average train loss %0.3g | test loss %0.3g | test acc: %0.3f' % (loss / num_clients, test_loss, acc))
+      #print('average train loss %0.3g | test loss %0.3g | test acc: %0.3f' % (loss / num_clients, test_loss, acc))
       print('backdoor accuracy {}'.format(back_acc))
   #return autoencoder_test_data_roundwise
 
@@ -586,7 +586,7 @@ print("Accuracy lists : ",global_accuracy_list)
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [13,15,16,20,21,22]
+attackers = [5,15,20]
 poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,7,500,local_data_fl, test_data_1, backdoor_test_data,True)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
@@ -603,7 +603,7 @@ global_shap_data.append(shap_data)
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [13,15,16,20,21,22]
+attackers = [5,15,20]
 poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,7,500,local_data_fl, test_data_1, backdoor_test_data,False)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
@@ -617,17 +617,17 @@ global_ae_data.append(autoencoder_results)
 global_euclid_data.append(euclid_dists)
 global_shap_data.append(shap_data)
 
-with open('accuracy_6','wb') as fp:
+with open('accuracy_3','wb') as fp:
   pickle.dump(global_accuracy_list,fp)
-with open('rounds_6','wb') as fp:
+with open('rounds_3','wb') as fp:
   pickle.dump(global_communication_rounds,fp)
-with open('mcr_6','wb') as fp:
+with open('mcr_3','wb') as fp:
   pickle.dump(global_misclassification_rates,fp)
-with open('tmcr_6','wb') as fp:
+with open('tmcr_3','wb') as fp:
   pickle.dump(global_target_misclassification_rates,fp)
-with open('asr_6','wb') as fp:
+with open('asr_3','wb') as fp:
   pickle.dump(global_attack_success_rates_list,fp)
-with open('shap_6','wb') as fp:
+with open('shap_3','wb') as fp:
   pickle.dump(global_shap_data,fp)  
-with open('basr_6','wb') as fp:
+with open('basr_3','wb') as fp:
   pickle.dump(global_backdoor_accuracy_list,fp)
