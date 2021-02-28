@@ -53,19 +53,7 @@ def load(train_data, test_data):
 
   return train_loader, test_loader
 
-transform_train = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-transform_test = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-# Normalizing the test images
-transform_test = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
 
 transform_train = transforms.Compose(
     [transforms.Grayscale(),
@@ -83,126 +71,7 @@ def imshow(img):
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
     plt.show()
 
-def change_data(data):
-  data = list(data)
-  for i in range(len(data)):
-    data[i] = list(data[i])
-    data[i][0] = data[i][0].numpy()
-    data[i][0] = np.transpose(data[i][0],(1,2,0))
-    data[i][0] = torch.tensor(data[i][0])
-    data[i] = tuple(data[i])
-  return data
 
-tr, ts = load_dataset()
-
-tr, ts = load_dataset()
-strd = split_data(tr,50)
-
-type(tr)
-
-x = change_data(tr)
-
-x[2][0].shape
-
-plt.imshow(x[3][0])
-
-tr = list(tr)
-
-tr[1] = list(tr[1])
-
-tr[1][0] = tr[1][0].numpy()
-tr[1][0] = np.transpose(tr[1][0],(1,2,0))
-tr[1][0] = torch.tensor(tr[1][0])
-
-tr[1][0].shape
-
-c1 = strd[1]
-
-strd[1] = list(strd[1])
-
-strd[1][3] = list(strd[1][3])
-
-strd[1][3][0] = strd[1][3][0].numpy()
-strd[1][3][0] = np.transpose(strd[1][3][0],(1,2,0))
-strd[1][3][0] = torch.tensor(strd[1][3][0])
-print(strd[1][3][0].shape)
-
-strd[1][3] = tuple(strd[1][3])
-
-strd[1] = tuple(strd[1])
-
-strd[1][3][0].shape
-
-l = torch.utils.data.DataLoader(ts, batch_size = 128, shuffle=True) 
-b = next(iter(l))
-images, labels = b
-#dataiter = iter(trainloader)
-#images, labels = dataiter.next()
-
-imshow(torchvision.utils.make_grid(images[:5]))
-
-images[3]
-
-img_data = images[3]
-
-np_image = img_data.numpy()                      #converting tensor --> numpy
-np_image = np.transpose(np_image, (1,2,0))         #transform
-print(np_image.shape)
-
-#images[3] = torch.Tensor(np_image)
-
-images[3].shape
-
-np_image = images[0].numpy()                      #converting tensor --> numpy
-np_image = np.transpose(np_image, (1,2,0))  
-images[0].shape
-
-images[0].shape
-
-tr[3][0].shape
-
-tr[3] = list(tr[3])
-
-tr[3][0] = tr[3][0].numpy()
-tr[3][0] = np.transpose(tr[3][0],(1,2,0))
-
-class Model_CIFAR(nn.Module):
-    def __init__(self):
-        super(Model_CIFAR, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-class Model_CIFAR(nn.Module):
-    def __init__(self):
-        super(Model_CIFAR, self).__init__()
-        self.conv1 = nn.Conv2d(3, 10, 3)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(10, 5, 3)
-        self.fc1 = nn.Linear(10 * 5 * 3, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 10 * 5 * 3)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
 
 # neural network architecture declaration
 
@@ -242,86 +111,6 @@ class Model_CIFAR(nn.Module):
         num_features *= s
     return num_features
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-class Model_CIFAR(nn.Module):
-    def __init__(self):
-        super(Model_CIFAR,self).__init__()
-        self.conv_model = nn.Sequential(nn.Conv2d(in_channels=3,out_channels=6,kernel_size=5),   # (N,3,32,32) --> (N,6,28,28) 
-                                        nn.Tanh(),                                               # TanH --> Activation Function
-                                        nn.AvgPool2d(kernel_size=2,stride=2),                    # (N,6,28,28) --> (N,6,14,14)
-                                        nn.Conv2d(6,16,5),nn.Tanh(),                             # (N,6,14,14) --> (N,16,10,10)
-                                        nn.AvgPool2d(2,stride=2))                                # (N,16,10,10) --> (N,16,5,5)
-
-        #Dense Layer
-        self.dense_layer = nn.Sequential(nn.Linear(in_features=400,out_features=120),           #16*5*5 = 400 as input
-                                         nn.Tanh(),
-                                         nn.Linear(120,84),
-                                         nn.Tanh(),
-                                     nn.Linear(84,10))
-    def forward(self,x):
-        y = self.conv_model(x)
-        #flatten the result from Conv model
-        y = torch.flatten(y,1) # 1 --> dimension (N,16,5,5)
-        y = self.dense_layer(y)
-        return y
-
-cfg = {
-    'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
-    'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
-    'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
-}
-
-class VGG(nn.Module):
-    def __init__(self, vgg_name):
-        super(VGG, self).__init__()
-        self.features = self._make_layers(cfg[vgg_name])
-        self.classifier = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Linear(512, 512),
-            nn.ReLU(True),
-            nn.Linear(512, 10)
-        )
-
-    def forward(self, x):
-        out = self.features(x)
-        out = out.view(out.size(0), -1)
-        out = self.classifier(out)
-        output = F.log_softmax(out, dim=1)
-        return output
-
-    def _make_layers(self, cfg):
-        layers = []
-        in_channels = 3
-        for x in cfg:
-            if x == 'M':
-                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-            else:
-                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
-                           nn.BatchNorm2d(x),
-                           nn.ReLU(inplace=True)]
-                in_channels = x
-        layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
-        return nn.Sequential(*layers)
 
 class AE(nn.Module):
     def __init__(self):
@@ -795,18 +584,7 @@ test_data_bd, shap_background = torch.utils.data.random_split(test_data_2, [1500
 #clients_data_temp = split_data(train_data, num_clients)
 clients_data = split_data(train_data, num_clients)
 backdoor_test_data = insert_trojan_testing(test_data_bd)
-#clients_data = []
-#for data in clients_data_temp:
-#  temp = change_data(data)
-#  clients_data.append(temp)
-#backdoor_test_data = test_data_2
 
-l = torch.utils.data.DataLoader(backdoor_test_data, batch_size = 128, shuffle=True) 
-b = next(iter(l))
-images, labels = b
-#dataiter = iter(trainloader)
-#images, labels = dataiter.next()
-imshow(torchvision.utils.make_grid(images[:5]))
 
 print("Deatils of process till now")
 print("Poison sample list : ",global_poison_sample_list)
