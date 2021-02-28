@@ -417,7 +417,7 @@ def train(num_clients, num_rounds, train_loader, test_loader, backdoor_test_load
       if(defense):
         
         model_to_aggregate = []
-        threshold = 1.8
+        threshold = 1.7
         print('round : {}'.format(r))
         id = 0
         shap_data_temp = []
