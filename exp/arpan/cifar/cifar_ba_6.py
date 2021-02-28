@@ -586,7 +586,7 @@ print("Accuracy lists : ",global_accuracy_list)
 
 print("Running  Federated Learning with 70% attacker")
 local_data_fl = copy.copy(clients_data)
-attackers = [13,15,16]
+attackers = [13,15,16,20,21,22]
 poisoned_sample, attack_success_rate, misclassification_rates,target_misclassification_rates,acc_test, backdoor_acc_test, global_updates, client_local_updates, rounds ,euclid_dists ,autoencoder_results, shap_data = run(attackers,6,7,500,local_data_fl, test_data_1, backdoor_test_data,True)
 global_accuracy_list.append(acc_test)
 global_backdoor_accuracy_list.append(backdoor_acc_test)
