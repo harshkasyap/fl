@@ -12,7 +12,7 @@ services:
         command:
             [
                 "tensorboard",
-                "--logdir=/fl/runs",
+                "--logdir=/fl/out/runs",
                 "--port=45175",
                 "--bind_all",
             ]
