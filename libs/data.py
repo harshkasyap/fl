@@ -23,9 +23,12 @@ def load_dataset(dataset):
 
 
 def split_data(train_data, clients):
-    splitted_data = torch.utils.data.random_split(train_data,
-                                                  [int(len(train_data) / len(clients)) for _ in range(len(clients))])
+    split_arr = [int(len(train_data) / len(clients)) for _ in range(len(clients))]
+    rem_data = len(train_data) - (len(clients) * int(len(train_data) / len(clients)))
+    if rem_data > 0:
+        split_arr[-1] = split_arr[-1] + rem_data
     
+    splitted_data = torch.utils.data.random_split(train_data, split_arr)
     clients_data = {client: splitted_data[index] for index, client in enumerate(clients)}
 
     return clients_data
