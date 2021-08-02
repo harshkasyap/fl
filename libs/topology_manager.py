@@ -21,10 +21,12 @@ class TopologyManager:
         adj_mat: adjacency matrix from the given network
     """
 
-    def __init__(self, adj_mat, clients, node_type):
+    def __init__(self, adj_mat, clients, node_types):
         self.topology = []
-        self.adj_mat = adj_mat
-        self.clients = clients
+        self.group_prefix = "group-"
+        self.client_prefix = "client-"        
+        self.adj_mat = adj_mat[:]
+        self.clients = clients[:]
         self.num_nodes = len(self.adj_mat)
         self.rcvd_models = [{} for client in range(len(self.adj_mat))]
 
@@ -57,26 +59,10 @@ class TopologyManager:
     def get_broadcaster(self):
         broadcaster_nodes = self.node_type['broadcaster']
         return broadcaster_nodes
-
-
-class CentralizedTopology(TopologyManager):
-    def __init__(self, adj_mat, clients, node_type):
-        super().__init__(adj_mat, clients, node_type)
-
-    def get_neigh_weights(self, node_index):
-        neigh_weights = []
-        if self.is_node_avail(node_index):
-            neigh_weights = self.adj_mat[node_index]
-        return neigh_weights
-
-    def get_neigh_list(self, node_index):
-        neigh_weights = self.get_neigh_weights(node_index)
-        neigh_list = [index for (index, weight) in enumerate(neigh_weights) if weight]
-        return neigh_list
     
     def produce_model(self, node_index, _topic, model, epoch):
-        group_id = "group-" + node_index
-        client_id = "client-" + node_index
+        group_id = self.group_prefix + node_index
+        client_id = self.client_prefix + node_index
         pb = sy.serialize(wrap_model_params(model.parameters()))
         protobuf_producer = ProtobufProducer(group_id, client_id, State.get_protobuf_schema())
         try:
@@ -85,18 +71,18 @@ class CentralizedTopology(TopologyManager):
                                       _value=pb, 
                                       _headers={'iteration': str(epoch)})
         except Exception as se:
-            print(se)
+            log.error("Exception {} occured producing update for client {}".format(se, node_index))
             
     def consume_model(self, node_index, _topic, _model, _epoch):
         _rcvd_models = {}
 
         if self.is_node_avail(node_index):
-            group_id = "group-" + node_index
-            client_id = "client-" + node_index
+            group_id = self.group_prefix + node_index
+            client_id = self.client_prefix + node_index
             protobuf_consumer = ProtobufConsumer(group_id, client_id, State.get_protobuf_schema(), _topic)
 
             try:
-                t_end = time.time() + 2
+                t_end = time.time() + 10
                 while time.time() < t_end:
                     msg = protobuf_consumer.consume()
                     epoch = -1
@@ -110,11 +96,31 @@ class CentralizedTopology(TopologyManager):
                         model = nn.getModel(msg.value(), _model)
                         _rcvd_models[msg.key()] = copy.deepcopy(model)
             except KeyboardInterrupt:
-                pass
+                log.error("Exception KeyboardInterrupt occured consuming update for client {}".format(node_index))
+            except Exception as se:
+                log.error("Exception {} occured consuming update for client {}".format(se, node_index))
             finally:
                 protobuf_consumer.close()
         
         return _rcvd_models
+
+
+
+class CentralizedTopology(TopologyManager):
+    def __init__(self, adj_mat, server, clients, node_types):
+        super().__init__(adj_mat, clients, node_types)
+        self.clients.append(server)
+
+    def get_neigh_weights(self, node_index):
+        neigh_weights = []
+        if self.is_node_avail(node_index):
+            neigh_weights = self.adj_mat[node_index]
+        return neigh_weights
+
+    def get_neigh_list(self, node_index):
+        neigh_weights = self.get_neigh_weights(node_index)
+        neigh_list = [index for (index, weight) in enumerate(neigh_weights) if weight]
+        return neigh_list
 
     def broadcast(self, node_index, model):
         if self.is_node_avail(node_index):
@@ -125,8 +131,8 @@ class CentralizedTopology(TopologyManager):
 
 
 class DistributedTopology(TopologyManager):
-    def __init__(self, adj_mat, node_type):
-        super().__init__(adj_mat, node_type)
+    def __init__(self, adj_mat, clients, node_types):
+        super().__init__(adj_mat, clients, node_types)
 
     def get_in_neigh_weights(self, node_index):
         if node_index >= self.num_nodes:

@@ -5,32 +5,46 @@ import torch
 from torchvision import datasets, transforms
 
 
-def load_mnist_dataset():
+def load_dataset(dataset):
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
     ])
 
     datadir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/../data'
-    train_data = datasets.MNIST(root=datadir, train=True, transform=transform, download=True)
-    test_data = datasets.MNIST(root=datadir, train=False, transform=transform, download=True)
+    
+    train_data, test_data = None, None
+    
+    if dataset.upper() == "MNIST":
+        train_data = datasets.MNIST(root=datadir, train=True, transform=transform, download=True)
+        test_data = datasets.MNIST(root=datadir, train=False, transform=transform, download=True)
+
     return train_data, test_data
 
 
 def split_data(train_data, clients):
     splitted_data = torch.utils.data.random_split(train_data,
-                                                  [int(train_data.data.shape[0] / len(clients)) for _ in range(len(clients))])
+                                                  [int(len(train_data) / len(clients)) for _ in range(len(clients))])
     
     clients_data = {client: splitted_data[index] for index, client in enumerate(clients)}
+
     return clients_data
 
 
-def load_client_data(clients_data, batch_size, test_data=None, test_batch_size=None, **kwargs):
-    train_loaders = {client: torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True, **kwargs)
-                    for client, data in clients_data.items()}
+def load_client_data(clients_data, batch_size, test_ratio=None, **kwargs):
+    train_loaders = {}
+    test_loaders = {}
 
-    test_loader = None
-    if test_data and test_batch_size:
-        test_loader = torch.utils.data.DataLoader(test_data, batch_size=test_batch_size, shuffle=True, **kwargs)
+    if test_ratio is None:
+        for client, data in clients_data.items():
+            train_loaders[client] = torch.utils.data.DataLoader(data, batch_size=batch_size, shuffle=True, **kwargs)
+            
+    else:
+        for client, data in clients_data.items():
+            train_test = torch.utils.data.random_split(data, [int(len(data) * (1-test_ratio)), 
+                                                              int(len(data) * test_ratio)])
 
-    return train_loaders, test_loader
+            train_loaders[client] = torch.utils.data.DataLoader(train_test[0], batch_size=batch_size, shuffle=True, **kwargs)
+            test_loaders[client] = torch.utils.data.DataLoader(train_test[1], batch_size=batch_size, shuffle=True, **kwargs)
+
+    return train_loaders, test_loaders
