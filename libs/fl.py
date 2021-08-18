@@ -33,9 +33,9 @@ def federated_avg(models: Dict[Any, torch.nn.Module],
                   rule: agg.Rule = agg.Rule.FedAvg, **kwargs) -> torch.nn.Module:
     if len(models) > 1:
         if rule is agg.Rule.FedAvg:
-            model = agg.FedAvg(models)
+            model = agg.FedAvg(base_model, models)
         if rule is agg.Rule.FLTrust:
-            model = agg.FLTrust(base_model, models)
+            model = agg.FLTrust(base_model, models, **kwargs)
         if rule is agg.Rule.TMean:
             model = agg.TMean(base_model, models, **kwargs)
     else:
@@ -58,15 +58,17 @@ def eval(model, test_loader, device, actual_prediction=None, target_prediction=N
     test_output = {
         "test_loss": 0,
         "correct": 0,
-        "accuracy": 0,
-        "attack": {
+        "accuracy": 0
+    }
+    
+    if actual_prediction is not None and target_prediction is not None:
+        test_output["attack"] = {
             "instances": 0,
             "misclassifications": 0,
             "attack_success_count": 0,
             "misclassification_rate": 0,
             "attack_success_rate": 0
         }
-    }
 
     with torch.no_grad():
         for data, target in test_loader:
