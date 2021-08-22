@@ -11,6 +11,7 @@
         * it will also add this conda env in your base jupyter notebook, look for [reference](https://towardsdatascience.com/how-to-set-up-anaconda-and-jupyter-notebook-the-right-way-de3b7623ea4a)
     * conda activate X-PyFLX
     * open host_ip:port for opening jupyter notebook
+        * jupyter notebook --no-browser --ip="*" --port=xxxx --NotebookApp.token='xx' --NotebookApp.iopub_data_rate_limit=1.0e1000
     * tensorboard --logdir runs/ --port 45175 --bind_all
     * open host_ip:45175 for opening tensorboard
     
