@@ -129,7 +129,12 @@ dmypy.json
 .pyre/
 
 #Custom
-data/
+!data/
+data/*
+!data/Wisconsin/
+!data/ag_news_csv/
 runs/
 logs/
 dumps/
+out/
+wandb

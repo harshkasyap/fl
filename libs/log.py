@@ -10,7 +10,7 @@ def init(arg='info', filename=None):
     format = "%(asctime)s - %(message)s [%(processName)s : %(threadName)s (%(levelname)s)]"
     if filename is not None:
         logdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/../out/logs'
-        filename = logdir + '/' + filename.split(".")[0] + ".log"
+        filename = logdir + '/' + filename + ".log"
         if not os.path.exists(logdir):
             os.makedirs(logdir)
 
