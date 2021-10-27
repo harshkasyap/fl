@@ -121,7 +121,6 @@ def get_trusted_components(eucliden_dist, no_of_clients, params):
         trusted_components = sign_p if len(sign_p[0]) > len(sign_n[0]) else sign_n
     except:
         return (b_arr, client_score)
-
     
     if len(a_euc_score[trusted_components]) > 1:
         client_score[trusted_components] = sim.min_max_norm(a_euc_score[trusted_components])

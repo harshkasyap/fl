@@ -17,13 +17,13 @@ def cosine_coord_vector_adapter(b, m, coord, dot_mb, norm_m, sim_mg, c, norm_c, 
     _sim_mg = (_dot_mg / (_norm_m * norm_c)).real
     
     updated = True
-    #if _sim_mg < sim_mg and _norm_m < (norm_b * scale_norm) and _norm_m > (norm_b * (1 / scale_norm)):
-    sim_mg = _sim_mg
-    norm_m = _norm_m
-    dot_mb = dot_mb - b[coord] * (prev_m_coord - m[coord])
-    #else:
-    #    updated = False
-    #    m[coord] = prev_m_coord
+    if _sim_mg < sim_mg and _norm_m < (norm_b * scale_norm) and _norm_m > (norm_b * (1 / scale_norm)):
+        sim_mg = _sim_mg
+        norm_m = _norm_m
+        dot_mb = dot_mb - b[coord] * (prev_m_coord - m[coord])
+    else:
+        updated = False
+        m[coord] = prev_m_coord
     
     return m, dot_mb, norm_m, sim_mg, updated
 
