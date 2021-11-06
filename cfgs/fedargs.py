@@ -8,6 +8,7 @@ argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()
 
 class FedArgs():
     def __init__(self):
+        self.name = "client-x"
         self.num_clients = 50
         self.epochs = 51
         self.local_rounds = 1
@@ -24,6 +25,10 @@ class FedArgs():
         self.model = nn.ModelMNIST() # for mnist and f-mnist #resnet.ResNet18() for cifar - 10
         self.train_func = fl.train_model
         self.eval_func = fl.evaluate
+        self.topic = "pyflx"
+        self.broker_ip = '172.16.26.40:9092'
+        self.schema_ip = 'http://172.16.26.40:8081'
+        self.wait_to_consume = 10
         self.tb = SummaryWriter(argsdir + '/../out/runs/fl/test-run', comment="fl")
         
 fedargs = FedArgs()
