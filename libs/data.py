@@ -73,14 +73,18 @@ class AGNEWs(Dataset):
         class_weight = [num_samples/float(self.label.count(c)) for c in label_set]    
         return class_weight, num_class
 
-def load_dataset(dataset):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
+def load_dataset(dataset, only_to_tensor = False):
+    if only_to_tensor:
+        transform=transforms.ToTensor()
+    elif dataset.upper() == "MNIST" or dataset.upper() == "FMNIST":
+        transform = transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])
+    else:
+        transform=transforms.ToTensor()
 
     datadir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/../data'
-    
     train_data, test_data = None, None
     
     if dataset.upper() == "AGNEWS":
@@ -108,9 +112,13 @@ def load_dataset(dataset):
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
+        
+        if only_to_tensor:
+            transform_train=transforms.ToTensor()
+            transform_test=transforms.ToTensor()
 
-        train_data = datasets.CIFAR10(root=datadir, train=True, transform=transform_train)
-        test_data = datasets.CIFAR10(root=datadir, train=False, transform=transform_test)
+        train_data = datasets.CIFAR10(root=datadir, train=True, transform=transform_train, download=True)
+        test_data = datasets.CIFAR10(root=datadir, train=False, transform=transform_test, download=True)
 
         classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
         
@@ -170,7 +178,11 @@ def load_client_data(clients_data, batch_size, test_ratio=None, **kwargs):
             train_test = torch.utils.data.random_split(data, [int(len(data) * (1-test_ratio)), 
                                                               int(len(data) * test_ratio)])
 
-            train_loaders[client] = torch.utils.data.DataLoader(train_test[0], batch_size=batch_size, shuffle=True, **kwargs)
-            test_loaders[client] = torch.utils.data.DataLoader(train_test[1], batch_size=batch_size, shuffle=True, **kwargs)
+            if batch_size != -1:
+                train_loaders[client] = torch.utils.data.DataLoader(train_test[0], batch_size=batch_size, shuffle=True, **kwargs)
+                test_loaders[client] = torch.utils.data.DataLoader(train_test[1], batch_size=batch_size, shuffle=True, **kwargs)
+            else:
+                train_loaders[client] = torch.utils.data.DataLoader(train_test[0], batch_size=len(train_test[0]), shuffle=True, **kwargs)
+                test_loaders[client] = torch.utils.data.DataLoader(train_test[1], batch_size=len(train_test[1]), shuffle=True, **kwargs)
 
     return train_loaders, test_loaders

@@ -21,6 +21,7 @@ class FedArgs():
         self.loop = asyncio.get_event_loop()
         self.agg_rule = agg.Rule.FedAvg
         self.dataset = "mnist" # can run for mnist, f-mnist, cifar-10, for ag_news ?
+        self.one_d_len = 784
         self.labels = [label for label in range(10)] # for mnist and f-Mnist
         self.model = nn.ModelMNIST() # for mnist and f-mnist #resnet.ResNet18() for cifar - 10
         self.train_func = fl.train_model
@@ -29,6 +30,7 @@ class FedArgs():
         self.broker_ip = '172.16.26.40:9092'
         self.schema_ip = 'http://172.16.26.40:8081'
         self.wait_to_consume = 10
+        self.hdc_proj_len = 10000
         self.tb = SummaryWriter(argsdir + '/../out/runs/fl/test-run', comment="fl")
         
 fedargs = FedArgs()
