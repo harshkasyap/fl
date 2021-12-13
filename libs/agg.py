@@ -3,6 +3,7 @@ import numpy as np
 from functools import reduce, partial
 import multiprocessing
 from multiprocessing import Pool, Process
+import sklearn.metrics.pairwise as smp
 
 import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
@@ -10,12 +11,13 @@ from libs import sim, log
 
 class Rule(enum.Enum):
     FedAvg = 0
-    FLTrust = 1
-    FLTC = 2
-    Krum = 3
-    M_Krum = 4
-    Median = 5
-    T_Mean = 6
+    FoolsGold = 1
+    FLTrust = 2
+    FLTC = 3
+    Krum = 4
+    M_Krum = 5
+    Median = 6
+    T_Mean = 7
 
 def verify_model(base_model, model):
     params1 = base_model.state_dict().copy()
@@ -61,6 +63,49 @@ def scale_model(model, scale):
 def FedAvg(base_model, models):
     model_list = list(models.values())
     model = reduce(add_model, model_list)
+    model = scale_model(model, 1.0 / len(models))
+    if base_model is not None:
+        model = sub_model(base_model, model)
+    return model
+
+def FoolsGold(base_model, models, **kwargs):
+    len_grad = len(sim.get_net_arr(base_model)[0])
+    model_list = list(models.values())
+    n_clients = len(model_list)
+    
+    grads = np.zeros((n_clients, len_grad))
+    for index, model in enumerate(model_list):
+        grads[index] = sim.get_net_arr(model)[0]
+
+    cs = smp.cosine_similarity(grads) - np.eye(n_clients)
+    maxcs = np.max(cs, axis=1)
+    
+    # pardoning
+    for i in range(n_clients):
+        for j in range(n_clients):
+            if i == j:
+                continue
+            if maxcs[i] < maxcs[j]:
+                cs[i][j] = cs[i][j] * maxcs[i] / maxcs[j]
+    wv = 1 - (np.max(cs, axis=1))
+    wv[wv > 1] = 1
+    wv[wv < 0] = 0
+
+    # Rescale so that max value is wv
+    wv = wv / np.max(wv)
+    wv[(wv == 1)] = .99
+    
+    # Logit function
+    wv = (np.log(wv / (1 - wv)) + 0.5)
+    wv[(np.isinf(wv) + wv > 1)] = 1
+    wv[(wv < 0)] = 0
+
+    updated_model_list = []
+    for index, model in enumerate(model_list):
+        model = scale_model(model, wv[index])
+        updated_model_list.append(model)
+                                  
+    model = reduce(add_model, updated_model_list)
     model = scale_model(model, 1.0 / len(models))
     if base_model is not None:
         model = sub_model(base_model, model)

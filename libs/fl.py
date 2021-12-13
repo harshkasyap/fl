@@ -162,6 +162,8 @@ def federated_avg(models: Dict[Any, torch.nn.Module],
     if len(models) > 1:
         if rule is agg.Rule.FedAvg:
             model = agg.FedAvg(base_model, models)
+        if rule is agg.Rule.FoolsGold:
+            model = agg.FoolsGold(base_model, models, **kwargs)
         if rule is agg.Rule.FLTrust:
             model = agg.FLTrust(base_model, models, **kwargs)
         if rule is agg.Rule.FLTC:

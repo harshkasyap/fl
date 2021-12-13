@@ -35,7 +35,7 @@ def init(name = None, project = None):
     if project is not None:
         plot.project = project
 
-    plotdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/../out/plots/'+plot.project
+    plotdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/../out/plots/' + plot.project
     plot.file = plotdir + '/' + plot.name + ".json"
     plot.time = datetime.today().isoformat()
 
