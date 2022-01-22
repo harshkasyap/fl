@@ -9,7 +9,7 @@ argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()
 class FedArgs():
     def __init__(self):
         self.name = "client-x"
-        self.num_clients = 50
+        self.num_clients = 100
         self.epochs = 51
         self.local_rounds = 1
         self.client_batch_size = 32
@@ -20,7 +20,8 @@ class FedArgs():
         self.seed = 1
         self.loop = asyncio.get_event_loop()
         self.agg_rule = agg.Rule.FedAvg
-        self.dataset = "mnist" # can run for mnist, f-mnist, cifar-10, for ag_news ?
+        self.dataset = "mnist" # can run for mnist, fmnist, cifar10, for ag_news ?
+        self.view = [1, 28, 28] # how to pass it as a param.
         self.one_d_len = 784
         self.labels = [label for label in range(10)] # for mnist and f-Mnist
         self.model = nn.ModelMNIST() # for mnist and f-mnist #resnet.ResNet18() for cifar - 10
@@ -60,24 +61,39 @@ FLTrust = {"is": True if fedargs.agg_rule in [agg.Rule.FLTrust, agg.Rule.FLTC] e
 # No of malicious clients
 mal_clients = [c for c in range(20)]
 
+# HDC DP attack
+hdc_dp_attack = {"is": False,
+                 "func": poison.hdc_dp_attack,
+                 "percent": -1,
+                 "args": {"scale_dot": 1,
+                          "scale_norm": 10,
+                          "labels": fedargs.labels,
+                          "one_d_len": fedargs.one_d_len,
+                          "hdc_proj_len": fedargs.hdc_proj_len,
+                          "view": fedargs.view}}
+
 # Label Flip
 label_flip_attack = {"is": False,
-                     "func": poison.label_flip_next, # see other possible functions in poison python file
+                     "func": poison.label_flip, # see other possible functions in poison python file
                      "labels": {},
                      "percent": -1}
 
 def set_lfa_labels(flip_labels = None):
     if flip_labels is None:
-        label_flip_attack["labels"] = {4: 6} if label_flip_attack["is"] and label_flip_attack["func"] is poison.label_flip else None
-        label_flip_attack["labels"] = {label: fedargs.labels[(index + 1) % len(fedargs.labels)] for index, label in enumerate(fedargs.labels)} if label_flip_attack["is"] and label_flip_attack["func"] is poison.label_flip_next else label_flip_attack["labels"]
+        label_flip_attack["labels"] = {4: 6}
+    elif flip_labels == "next":
+        label_flip_attack["labels"] = {label: fedargs.labels[(index + 1) % len(fedargs.labels)] for index, label in enumerate(fedargs.labels)}
     else:
         label_flip_attack["labels"] = flip_labels
 
 # Backdoor
 backdoor_attack = {"is": False,
+                   "func": poison.insert_trojan_labels, # see other possible functions in poison python file like insert_trojan
                    "trojan_func": poison.insert_trojan_pattern, # see other possible functions in poison python file
+                   "source_label": 4,
                    "target_label": 6,
-                   "ratio": 0.006,
+                   "percent": -1,
+                   "ratio": 0.06,
                    "data": None,
                    "loader": None}
 

@@ -3,10 +3,19 @@ import torch
 class HDC(torch.nn.Module):
     def __init__(self, img_len, hvd, num_classes, device):
         super(HDC, self).__init__()
+        #self.data = []
         self.cos = torch.nn.CosineSimilarity(dim=-1, eps=1e-8)
         self.num_classes = num_classes
         self.proj = torch.rand((img_len, hvd), device=device)
+        self.proj_inv = self.get_proj_inv()
         self.train_vectors = torch.zeros((num_classes, hvd), device=device)
+        
+    def get_proj_inv(self):
+        proj_trans = torch.transpose(self.proj, 0, 1)
+        proj_mul_trans = self.proj @ proj_trans
+        proj_mul_trans_inv = torch.inverse(proj_mul_trans)
+        proj_inv = proj_trans @ proj_mul_trans_inv
+        return proj_inv
         
     def avg(self, client_model_updates):
         for model_update in client_model_updates:
@@ -18,8 +27,9 @@ class HDC(torch.nn.Module):
         
         hdc_train = x_train.reshape(x_train.shape[0], -1) @ self.proj
         for i in range(x_train.shape[0]):
+            #self.data.append((hdc_train[i], y_train[i]))
             self.train_vectors[y_train[i]] += hdc_train[i]
-            
+
         return self.test(train_loader, device)
     
     def test(self, test_loader, device):

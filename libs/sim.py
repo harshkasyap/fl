@@ -24,7 +24,7 @@ def cosine_coord_vector_adapter(b, m, coord, dot_mb, norm_m, sim_mg, c, norm_c, 
     else:
         updated = False
         m[coord] = prev_m_coord
-    
+
     return m, dot_mb, norm_m, sim_mg, updated
 
 def cosine_coord_vector(b, m, coord, dot_mb=None, norm_m = None):

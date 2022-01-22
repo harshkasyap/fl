@@ -20,25 +20,31 @@ def audit_attack(target, pred, flip_labels, attack_dict):
                     if pred[i].item() == flip_labels[target[i].item()]:
                         attack_dict["attack_success_count"] += 1
 
-def backdoor_test(model, backdoor_test_loader, device, backdoor_target):
+def backdoor_test(model, backdoor_test_loader, device, source_label):
     model.eval()
     test_output = {
         "test_loss": 0,
-        "accuracy": 0
+        "accuracy": 0,
+        "misclass": 0
     }
     test_loss = 0
     correct = 0
+    misclass = 0
+
     with torch.no_grad():
         for data, target in backdoor_test_loader:
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             for i in range(len(pred)):
-                if pred[i] == backdoor_target:
-                    correct += 1
+                if pred[i] != source_label:
+                    misclass += 1
+                    if pred[i] == target[i]:
+                        correct += 1
 
     test_output["test_loss"] /= len(backdoor_test_loader.dataset)
     test_output["accuracy"] = (correct / len(backdoor_test_loader.dataset)) * 100
+    test_output["misclass"] = (misclass / len(backdoor_test_loader.dataset)) * 100    
 
     return test_output
 
@@ -176,6 +182,8 @@ def federated_avg(models: Dict[Any, torch.nn.Module],
             model = agg.Median(base_model, models, **kwargs)
         if rule is agg.Rule.T_Mean:
             model = agg.T_Mean(base_model, models, **kwargs)
+        if rule is agg.Rule.DnC:
+            model = agg.DnC(base_model, models, **kwargs)            
     else:
         model = copy.deepcopy(list(models.values())[0])
     return model

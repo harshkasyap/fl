@@ -18,6 +18,7 @@ class Rule(enum.Enum):
     M_Krum = 5
     Median = 6
     T_Mean = 7
+    DnC = 8
 
 def verify_model(base_model, model):
     params1 = base_model.state_dict().copy()
@@ -321,6 +322,50 @@ def T_Mean(base_model, models, **kwargs):
     for index, arr in enumerate(merged_updated_model_arrs):
         model_arr[index] = arr[lb:ub].mean(0)
     model = sim.get_arr_net(dummy_model, model_arr, d_list)
+    
+    if base_model is not None:
+        model = sub_model(base_model, model)
+    return model
+
+def DnC(base_model, models, **kwargs):
+    num_buckets=1
+    bucket=100000
+    all_updates = []
+    _list = None
+    
+    for model in list(models.values()):
+        model_arr, _list = sim.get_net_arr(model)
+        all_updates.append(model_arr)
+        
+    all_updates = torch.tensor(all_updates)
+    n, d = all_updates.shape
+
+    n_attackers = kwargs["beta"]
+
+    final_indices = []
+    
+    for p in np.arange(num_buckets):
+        idx = np.sort(np.random.choice(d, bucket, replace=False))
+        sampled_all_updates = all_updates[:, idx]
+        sampled_good_updates = all_updates[n_attackers:][:, idx]
+
+        centered_all_updates = sampled_all_updates - torch.mean(sampled_all_updates, 0)
+        centered_good_updates = sampled_good_updates - torch.mean(sampled_good_updates, 0)
+        
+        u, s, v = torch.svd(centered_all_updates)
+        u_g, s_g, v_g = torch.svd(centered_good_updates)
+        
+        scores = torch.mm(centered_all_updates, v[:,0][:, None]).cpu().numpy()
+        
+        final_indices.append(list(np.argsort(scores[:,0]**2)[:(n-int(1.5*n_attackers))]))
+
+    result = set(final_indices[0]) 
+    for currSet in final_indices[1:]: 
+        result.intersection_update(currSet)
+    final_idx = np.array(list(result))
+    # print(np.array(final_idx), len((final_idx)))
+    
+    model = sim.get_arr_net(base_model, torch.mean(all_updates[final_idx], 0).numpy(), _list)
     
     if base_model is not None:
         model = sub_model(base_model, model)
