@@ -64,8 +64,9 @@ mal_clients = [c for c in range(20)]
 # HDC DP attack
 hdc_dp_attack = {"is": False,
                  "func": poison.hdc_dp_attack,
-                 "percent": -1,
-                 "args": {"scale_dot": 1,
+                 "percent": 0.2,
+                 "args": {"func": poison.hdc_dp,
+                          "scale_dot": 1,
                           "scale_norm": 10,
                           "labels": fedargs.labels,
                           "one_d_len": fedargs.one_d_len,
