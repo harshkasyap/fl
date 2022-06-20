@@ -2,7 +2,7 @@ import asyncio, inspect, os, sys
 from torch.utils.tensorboard import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
-from libs import agg, fl, nn, poison, resnet, text_utils
+from libs import agg, fl, inference, nn, poison, resnet, text_utils
 
 argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -133,3 +133,9 @@ sota_attack = {"is": False,
 
 # Sybil attack, for sending same update as base
 sybil_attack = {"is": False}
+
+# Label Sniffing
+shap_explain = {"is": False,
+                "trim_labels": [4],
+                "trim_data": inference.trim_data,
+                "trim_percent": 1}

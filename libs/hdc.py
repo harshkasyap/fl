@@ -44,6 +44,7 @@ class HDC(torch.nn.Module):
         x_train, y_train = x_train.to(device), y_train.to(device)
         
         hdc_train = x_train.reshape(x_train.shape[0], -1) @ self.proj
+
         for i in range(x_train.shape[0]):
             self.train_vectors[y_train[i]] += hdc_train[i]
 
@@ -65,6 +66,7 @@ class HDC(torch.nn.Module):
         else:
             alpha = 0.5
 
+        print([self.cos(mal_train_vectors[row][col], self.train_vectors[i:i+1]) for i in range(self.num_classes)])
         self.train_vectors[row] += alpha * mal_train_vectors[row][col]
         self.train_vectors[col] -= alpha * mal_train_vectors[row][col]
     
@@ -74,6 +76,7 @@ class HDC(torch.nn.Module):
         
         hdc_train = x_train.reshape(x_train.shape[0], -1) @ self.proj
         pred = torch.stack([self.cos(hdc_train, self.train_vectors[i:i+1]) for i in range(self.num_classes)], axis=-1)
+        print (pred)
 
         mal_train_vectors = torch.zeros((self.num_classes, self.num_classes, self.hvd),device=device)
         

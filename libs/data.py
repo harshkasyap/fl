@@ -2,6 +2,20 @@ import csv, inspect, json
 import os.path
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import PIL
+from monai.apps import download_and_extract
+from monai.transforms import (
+    Activations,
+    AddChannel,
+    AsDiscrete,
+    Compose,
+    LoadImage,
+    RandFlip,
+    RandRotate,
+    RandZoom,
+    ScaleIntensity,
+    EnsureType,
+)
 import numpy as np
 
 import torch
@@ -72,6 +86,43 @@ class AGNEWs(Dataset):
         num_class = [self.label.count(c) for c in label_set]
         class_weight = [num_samples/float(self.label.count(c)) for c in label_set]    
         return class_weight, num_class
+    
+class CelebaDataset(Dataset):
+    """Custom Dataset for loading CelebA face images"""
+
+    def __init__(self, csv_path, img_dir, transform=None):
+    
+        df = pd.read_csv(csv_path, index_col=0)
+        self.img_dir = img_dir
+        self.csv_path = csv_path
+        self.img_names = df.index.values
+        self.y = df['Male'].values
+        self.transform = transform
+
+    def __getitem__(self, index):
+        img = Image.open(os.path.join(self.img_dir,
+                                      self.img_names[index]))
+        
+        if self.transform is not None:
+            img = self.transform(img)
+        
+        label = self.y[index]
+        return img, label
+
+    def __len__(self):
+        return self.y.shape[0]
+    
+class MedNISTDataset(torch.utils.data.Dataset):
+    def __init__(self, image_files, labels, transforms):
+        self.image_files = image_files
+        self.labels = labels
+        self.transforms = transforms
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, index):
+        return self.transforms(self.image_files[index]), self.labels[index]
 
 def load_dataset(dataset, only_to_tensor = False):
     if only_to_tensor:
@@ -99,6 +150,117 @@ def load_dataset(dataset, only_to_tensor = False):
     if dataset.upper() == "FMNIST":
         train_data = datasets.FashionMNIST(root=datadir, train=True, transform=transform, download=True)
         test_data = datasets.FashionMNIST(root=datadir, train=False, transform=transform, download=True)
+        
+    if dataset.upper() == "MEDNIST":
+        resource = "https://github.com/Project-MONAI/MONAI-extra-test-data/releases/download/0.8.1/MedNIST.tar.gz"
+        md5 = "0bc7306e7427e00ad1c5526a6677552d"
+
+        compressed_file = os.path.join(datadir, "MedNIST.tar.gz")
+        data_dir = os.path.join(datadir, "MedNIST/MedNIST")
+        if not os.path.exists(data_dir):
+            download_and_extract(resource, compressed_file, data_dir, md5)
+        
+        class_names = sorted(x for x in os.listdir(data_dir)
+                             if os.path.isdir(os.path.join(data_dir, x)))
+        num_class = len(class_names)
+        image_files = [
+            [
+                os.path.join(data_dir, class_names[i], x)
+                for x in os.listdir(os.path.join(data_dir, class_names[i]))
+            ]
+            for i in range(num_class)
+        ]
+        num_each = [len(image_files[i]) for i in range(num_class)]
+        image_files_list = []
+        image_class = []
+        for i in range(num_class):
+            image_files_list.extend(image_files[i])
+            image_class.extend([i] * num_each[i])
+        num_total = len(image_class)
+        image_width, image_height = PIL.Image.open(image_files_list[0]).size
+
+        val_frac = 0.1
+        test_frac = 0.1
+        length = len(image_files_list)
+        indices = np.arange(length)
+        np.random.shuffle(indices)
+
+        test_split = int(test_frac * length)
+        val_split = int(val_frac * length) + test_split
+        test_indices = indices[:test_split]
+        val_indices = indices[test_split:val_split]
+        train_indices = indices[val_split:]
+
+        train_x = [image_files_list[i] for i in train_indices]
+        train_y = [image_class[i] for i in train_indices]
+        val_x = [image_files_list[i] for i in val_indices]
+        val_y = [image_class[i] for i in val_indices]
+        test_x = [image_files_list[i] for i in test_indices]
+        test_y = [image_class[i] for i in test_indices]
+        
+        train_transforms = Compose(
+            [
+                LoadImage(image_only=True),
+                AddChannel(),
+                ScaleIntensity(),
+                RandRotate(range_x=np.pi / 12, prob=0.5, keep_size=True),
+                RandFlip(spatial_axis=0, prob=0.5),
+                RandZoom(min_zoom=0.9, max_zoom=1.1, prob=0.5),
+                EnsureType(),
+            ]
+        )
+
+        val_transforms = Compose(
+            [LoadImage(image_only=True), AddChannel(), ScaleIntensity(), EnsureType()])
+
+        y_pred_trans = Compose([EnsureType(), Activations(softmax=True)])
+        y_trans = Compose([EnsureType(), AsDiscrete(to_onehot=num_class)])
+        
+        train_data = MedNISTDataset(train_x, train_y, train_transforms)
+        valid_data = MedNISTDataset(val_x, val_y, val_transforms)
+        test_data = MedNISTDataset(test_x, test_y, val_transforms)
+        
+    if dataset.upper() == "CELEBA":
+        # 1. Download this file into dataset_directory:
+        #  https://www.kaggle.com/jessicali9530/celeba-dataset
+        # 2. Put the `img_align_celeba` directory into the `celeba` directory!
+        # 3. Dataset directory structure should look like this (required by ImageFolder from torchvision):
+        #  +- `dataset_directory`
+        #     +- celeba
+        #        +- img_align_celeba
+        #           +- 000001.jpg
+        #           +- 000002.jpg
+        #           +- 000003.jpg
+        #           +- ...
+        
+        df1 = pd.read_csv(datadir + '/celeba/list_attr_celeba.txt', sep="\s+", skiprows=1, usecols=['Male'])
+
+        # Make 0 (female) & 1 (male) labels instead of -1 & 1
+        df1.loc[df1['Male'] == -1, 'Male'] = 0
+        
+        df2 = pd.read_csv(datadir + '/celeba/list_eval_partition.txt', sep="\s+", skiprows=0, header=None)
+        df2.columns = ['Filename', 'Partition']
+        df2 = df2.set_index('Filename')
+        
+        df3 = df1.merge(df2, left_index=True, right_index=True)
+        df3.to_csv(datadir + '/celeba/celeba-gender-partitions.csv')
+        df4 = pd.read_csv(datadir + '/celeba/celeba-gender-partitions.csv', index_col=0)
+        
+        df4.loc[df4['Partition'] == 0].to_csv(datadir + '/celeba/celeba-gender-train.csv')
+        df4.loc[df4['Partition'] == 1].to_csv(datadir + '/celeba/celeba-gender-valid.csv')
+        df4.loc[df4['Partition'] == 2].to_csv(datadir + '/celeba/celeba-gender-test.csv')
+        
+        train_data = CelebaDataset(csv_path=datadir + '/celeba/celeba-gender-train.csv',
+                              img_dir=datadir + '/celeba/img_align_celeba/',
+                              transform=transform)
+
+        valid_data = CelebaDataset(csv_path=datadir + '/celeba/celeba-gender-valid.csv',
+                                      img_dir=datadir + '/celeba/img_align_celeba/',
+                                      transform=transform)
+
+        test_data = CelebaDataset(csv_path=datadir + '/celeba/celeba-gender-test.csv',
+                                     img_dir=datadir + '/celeba/img_align_celeba/',
+                                     transform=transform)
         
     if dataset.upper() == "CIFAR10":
         transform_train = transforms.Compose([

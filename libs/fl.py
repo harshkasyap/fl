@@ -76,7 +76,8 @@ def client_update(_model, data_loader, learning_rate, decay, epochs, device):
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
-            _loss = F.nll_loss(output, target)
+            #_loss = F.nll_loss(output, target)
+            _loss = F.cross_entropy(output, target)
             _loss.backward()
             optimizer.step()
 
