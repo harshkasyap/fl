@@ -133,6 +133,7 @@ dmypy.json
 data/*
 !data/Wisconsin/
 !data/ag_news_csv/
+!data/attr_celeba/
 runs/
 logs/
 dumps/
