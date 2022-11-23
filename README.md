@@ -18,7 +18,7 @@
 * If running with kafka
     * host kafka broker and other essential components with [docker](src/kafka/docker-compose.yml)
     * before running update the host ip in the broker service, and also update the same in [producer](libs/protobuf_producer.py) and [consumer](libs/protobuf_consumer.py) files
-    * good to run this [file](src/flkafka.ipynb) for simulation
+    * good to run this [file](src/kafka/flkafka.ipynb) for simulation
     
     
 
