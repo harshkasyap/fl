@@ -1,4 +1,5 @@
 import copy, enum, torch
+import math
 import numpy as np
 from functools import reduce, partial
 import multiprocessing
@@ -11,14 +12,15 @@ from libs import sim, log
 
 class Rule(enum.Enum):
     FedAvg = 0
-    FoolsGold = 1
-    FLTrust = 2
-    FLTC = 3
-    Krum = 4
-    M_Krum = 5
-    Median = 6
-    T_Mean = 7
-    DnC = 8
+    FedVal = 1
+    FoolsGold = 2
+    FLTrust = 3
+    FLTC = 4
+    Krum = 5
+    M_Krum = 6
+    Median = 7
+    T_Mean = 8
+    DnC = 9
 
 def verify_model(base_model, model):
     params1 = base_model.state_dict().copy()
@@ -65,6 +67,126 @@ def FedAvg(base_model, models):
     model_list = list(models.values())
     model = reduce(add_model, model_list)
     model = scale_model(model, 1.0 / len(models))
+    if base_model is not None:
+        model = sub_model(base_model, model)
+    return model
+
+def FedVal(base_model, models, **kwargs):
+    model_list = list(models.values()) # this is list of client model updates.
+    n_clients = len(model_list)
+    labels = 10 # assuming for 10-class classification problem
+    
+    # for now, assumed these two hyperparameters as done in the original code base.
+    s1_overall = 2
+    s1 = 3
+    s2 = 3
+    
+    scores = [0.0 for i in range(n_clients)] # to keep final trust scores of each client model udpate.
+    loss_dict = {} # to keep avg loss for each client model update.
+    label_loss_dict = {} # to keep label wise loss for each client model update.
+    
+    # To test, kept one batch as the data owned by the server.
+    x_test, y_test = next(iter(kwargs["val_data_loader"]))
+
+    # now, calculate avg loss and label wise loss for each client model update, similar to original code base.
+    for index, model in enumerate(model_list):
+        preds = model(x_test)
+        spec_label_correct_count = [0.0 for i in range(labels)]
+        spec_label_all_count = [0.0 for i in range(labels)]
+        spec_label_loss_count = [0.0 for i in range(labels)]
+
+        for i in range(len(preds)):
+            pred = np.argmax(preds[i].detach().numpy())
+            true = y_test[i]
+            spec_label_all_count[true] = spec_label_all_count[true] + 1
+            spec_label_loss_count[true] += -(math.log(max(preds[i][true],0.0001)))
+            if true == pred:
+                spec_label_correct_count[true] = spec_label_correct_count[true] +1
+
+        spec_label_accuracy = []
+        spec_label_loss = []
+        all_sum = 0
+        all_acc_correct = 0
+        all_loss_correct = 0
+        
+        for i in range(len(spec_label_all_count)):
+            all_sum += spec_label_all_count[i]
+            spec_label_accuracy.append(spec_label_correct_count[i]/spec_label_all_count[i])
+            all_acc_correct += spec_label_correct_count[i]
+            spec_label_loss.append(spec_label_loss_count[i]/spec_label_all_count[i])
+            all_loss_correct += spec_label_loss_count[i]
+
+        loss_dict[index] = np.mean(spec_label_loss)
+        label_loss_dict[index] = spec_label_loss
+
+    print("loss_dict", loss_dict)
+    print("label_loss_dict", label_loss_dict)
+        
+    # code to calculate the overall mad and slope.
+    mean_calc = []
+    for elem in loss_dict:
+        mean_calc.append(loss_dict[elem])
+    mean = np.mean(mean_calc)
+    
+    all_for_score = []
+    for elem in mean_calc:
+        #if loss then (mean - elem), if accuracy (mean - elem)
+        all_for_score.append(mean - elem)
+    mad_calc = all_for_score.copy()
+
+    for j in range(len(mad_calc)):
+        mad_calc[j] = abs(mad_calc[j])
+    no_elems = round(len(mad_calc))
+    mad_calc.sort()
+    mad_calc = mad_calc[:no_elems]
+    mad = np.mean(mad_calc)
+
+    slope = s1_overall/mad
+    
+    for k in range(len(all_for_score)):
+        scores[k] = scores[k] + slope*all_for_score[k] + 10
+    overall_mean = mean # before proceeding, store mean in overall mean.
+        
+    # label-wise trust scores calculated, followed by final trust score aggregation.
+    for label in range(labels):
+        mean_calc = []
+        for elem in label_loss_dict:
+            mean_calc.append(label_loss_dict.get(elem)[label])
+        mean = np.mean(mean_calc)
+
+        all_for_score = []
+        for elem in mean_calc:
+            all_for_score.append(mean - elem)
+        mad_calc = all_for_score.copy()
+
+        for j in range(len(mad_calc)):
+            mad_calc[j] = abs(mad_calc[j])
+        no_elems = round(len(mad_calc))
+        mad_calc.sort()
+        mad_calc = mad_calc[:no_elems]
+        mad = np.mean(mad_calc)
+
+        slope = s1/mad
+
+        dif = (mean - overall_mean)
+        x = ((overall_mean+dif)/overall_mean)
+        factor = x**s2
+
+        for k in range(len(all_for_score)):
+            scores[k] = scores[k] + (max(1,factor))*slope*all_for_score[k] + 10
+            
+    print ("scores", scores)
+    
+    # model aggregation
+    updated_model_list = []
+    for index, model in enumerate(model_list):
+        model = scale_model(model, scores[index])
+        updated_model_list.append(model)
+        
+    model = reduce(add_model, updated_model_list)
+    model = scale_model(model, 1.0 / sum(scores))
+
+    # next global model
     if base_model is not None:
         model = sub_model(base_model, model)
     return model

@@ -49,7 +49,7 @@ class TextConfig(object):
 textconfig = TextConfig()
         
 # FLTrust
-FLTrust = {"is": True if fedargs.agg_rule in [agg.Rule.FLTrust, agg.Rule.FLTC] else False,
+FLTrust = {"is": True if fedargs.agg_rule in [agg.Rule.FLTrust, agg.Rule.FLTC, agg.Rule.FedVal] else False,
            "ratio": 0.003,
            "data": None,
            "loader": None,
