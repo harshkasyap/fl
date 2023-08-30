@@ -397,4 +397,4 @@ dependencies:
     - tensorboard-data-server==0.6.1
     - tensorboard-plugin-wit==1.8.0
     - torch==1.12.1
-prefix: /home/harsh_1921cs01/anaconda3
+prefix: /Users/hkasyap/anaconda3

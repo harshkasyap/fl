@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import syft as sy
-from syft.federated.model_serialization import deserialize_model_params
+#import syft as sy
+#from syft.federated.model_serialization import deserialize_model_params
 
 class  CharCNN(nn.Module):
     def __init__(self, num_features):
@@ -308,7 +308,8 @@ WisconsinModel = torch.nn.Sequential(
     torch.nn.Linear(15, 1),
     torch.nn.Sigmoid()
 )    
-    
+
+'''
 def getModel(pb, _model):
     serialized_params = pb.SerializeToString()
     params = deserialize_model_params(serialized_params)
@@ -320,3 +321,4 @@ def getModel(pb, _model):
     _model.load_state_dict(_model_dict)
 
     return _model
+'''

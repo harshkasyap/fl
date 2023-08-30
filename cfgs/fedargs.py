@@ -2,7 +2,7 @@ import asyncio, inspect, os, sys
 from torch.utils.tensorboard import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
-from libs import agg, fl, inference, nn, poison, resnet, text_utils
+from libs import agg, fl, inference, nn, poison, resnet
 
 argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
