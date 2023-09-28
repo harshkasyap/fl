@@ -131,6 +131,11 @@ dmypy.json
 #Custom
 !data/
 data/*
+!data/bank/
+!data/dutch/
+!data/kdd/
+!data/ccc/
+!data/German_Credit_Data/
 !data/Wisconsin/
 !data/ag_news_csv/
 !data/attr_celeba/

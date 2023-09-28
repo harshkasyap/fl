@@ -349,7 +349,9 @@ def lie_attack(models, n_attackers, kn = Knowledge.PN):
     avg = np.array(v).mean(0)
     std = torch.std(torch.tensor(v), 0)
 
-    z_values={3:0.69847, 5:0.7054, 8:0.71904, 10:0.72575, 20:0.73891}
+    z_values={3:0.69847, 5:0.7054, 8:0.71904, 10:0.72575, 12:0.73891}
+    #z_values={3:0.69847, 5:0.7054, 8:0.71904, 10:0.72575, 12:0.73891}
+    
     mal_update = avg + z_values[n_attackers] * std.numpy()
     
     for index in range(n_attackers):

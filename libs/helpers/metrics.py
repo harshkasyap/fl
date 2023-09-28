@@ -31,7 +31,7 @@ def conditional_demographic_parity_difference(labels, pred, attr, groups):
     diffs = []
 
     for group in set(groups):
-        mask = groups == group
+        mask = groups == group        
 
         diffs.append(
             demographic_parity_difference(
