@@ -1,7 +1,7 @@
 import copy, cv2, enum, heapq, os, sys, torch
 from functools import partial
 from multiprocessing import Pool, Process
-from mxnet import nd as mnd
+#from mxnet import nd as mnd
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
@@ -363,6 +363,8 @@ def model_poison_cosine_coord(b_arr, cos_args, c_arr):
     poison_percent = cos_args["poison_percent"] if "poison_percent" in cos_args else 1
     scale_dot = cos_args["scale_dot"] if "scale_dot" in cos_args else 1
 
+    print("*before",sim.cosine_similarity(c_arr, b_arr))
+    
     npd = c_arr - b_arr
     p_arr = copy.deepcopy(c_arr)
     
@@ -378,6 +380,9 @@ def model_poison_cosine_coord(b_arr, cos_args, c_arr):
         p_arr, dot_mb, norm_m, sim_mg, updated = sim.cosine_coord_vector_adapter(b_arr, p_arr, index, dot_mb, norm_m, sim_mg, c_arr, norm_c, norm_b, **kwargs)
         
     params_changed = len(npd) - np.sum(p_arr == c_arr)
+    
+    print("*after1", sim.cosine_similarity(p_arr, b_arr))
+    print("*after2", sim.cosine_similarity(p_arr, c_arr))
 
     return p_arr, params_changed
 

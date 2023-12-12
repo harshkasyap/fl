@@ -1,10 +1,11 @@
 import copy, cmath, torch
 import numpy as nd
-from mxnet import nd as mnd
+#from mxnet import nd as mnd
 
 def cosine_similarity(arr1, arr2):
-    cs = mnd.dot(mnd.array(arr1), mnd.array(arr2)) / (mnd.norm(mnd.array(arr1)) + 1e-9) / (mnd.norm(mnd.array(arr2)) + 1e-9)
-    return cs.asnumpy()[0]
+    #cs = mnd.dot(mnd.array(arr1), mnd.array(arr2)) / (mnd.norm(mnd.array(arr1)) + 1e-9) / (mnd.norm(mnd.array(arr2)) + 1e-9)
+    #return cs.asnumpy()[0]
+    return dot(arr1, arr2)/(norm(arr1) * norm(arr2))
 
 def cosine_coord_vector_adapter(b, m, coord, dot_mb, norm_m, sim_mg, c, norm_c, norm_b, **kwargs):
     scale_norm = kwargs["scale_norm"] if "scale_norm" in kwargs else 10
@@ -58,8 +59,9 @@ def cosine_coord_vector(b, m, coord, dot_mb=None, norm_m = None):
     return sol
 
 def dot(arr1, arr2):
-    cs = mnd.dot(mnd.array(arr1), mnd.array(arr2))
-    return cs.asnumpy()[0]
+    #cs = mnd.dot(mnd.array(arr1), mnd.array(arr2))
+    #return cs.asnumpy()[0]
+    return nd.dot(arr1, arr2)
 
 def eucliden_dist(arr1, arr2):
     return nd.linalg.norm(arr1-arr2)
@@ -155,7 +157,8 @@ def min_max_norm(arr):
         return arr
 
 def norm(arr):
-    return mnd.norm(mnd.array(arr)).asnumpy()[0]
+    #return mnd.norm(mnd.array(arr)).asnumpy()[0]
+    return nd.linalg.norm(arr)
 
 def ssd(arr1, arr2):
     return sum((arr1-arr2)**2)

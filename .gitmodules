@@ -1,0 +1,3 @@
+[submodule "libs/openfhe-python"]
+	path = libs/openfhe-python
+	url = git@github.com:openfheorg/openfhe-python.git

@@ -106,11 +106,11 @@ layer_replacement_attack = {"is": False,
 # Cosine attack
 cosine_attack = {"is": False,
                  "args": {"poison_percent": 1,
-                          "scale_dot": 5,
+                          "scale_dot": 2,
                           "scale_dot_factor": 1,
-                          "scale_norm": 500,
-                          "scale_norm_factor": 2,
-                          "scale_epoch": 5},
+                          "scale_norm": 100,
+                          "scale_norm_factor": 1,
+                          "scale_epoch": 1},
                  "kn": poison.Knowledge.IN,
                  "func": poison.sine_attack}
 
