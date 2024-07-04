@@ -1,4 +1,4 @@
-# AgroFed
+# Federated Learning
 
 * If Docker installed
     * docker-compose up -d
