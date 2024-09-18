@@ -21,7 +21,7 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
-from libs import agg, data, fl, log, nn, plot, poison, resnet, sim, wandb
+from libs import agg, data, fl, log, nn, plot, poison, resnet, sim, wandb, he
 from cfgs.fedargs import *
 
 
@@ -35,6 +35,8 @@ name = 'fl-he'
 torch.manual_seed(1)
 
 #Define Custom CFGs
+fedargs.enc = True
+fedargs.num_clients = 50
 
 # Save Logs To File (info | debug | warning | error | critical) [optional]
 log.init("info")
@@ -73,6 +75,18 @@ train_data, test_data = data.load_dataset(fedargs.dataset)
 
 clients_data = data.split_data(train_data, clients)
 
+# for fast test
+new_data = {}
+for index, (client, details) in enumerate(clients_data.items()):
+    new_data[client] = details
+    
+    if index == 9:
+        break
+
+clients = clients[:10]
+clients_data = new_data
+print(len(clients), len(clients_data))
+
 
 # In[7]:
 
@@ -110,6 +124,11 @@ def process(client, epoch, model, train_loader, fedargs, device):
     
     return model_update
 
+@background
+def enc(model_update):
+    # Train
+    return he.enc_model_update(model_update)
+
 
 # In[ ]:
 
@@ -122,9 +141,17 @@ for epoch in tqdm(range(fedargs.epochs)):
     log.info("Federated Training Epoch {} of {}".format(epoch, fedargs.epochs))
 
     # Global Model Update
-    if epoch > 0:     
+    if epoch > 0:
         # Average
-        global_model = fl.federated_avg(client_model_updates, global_model)
+        if fedargs.enc:
+            _, slist = sim.get_net_arr(global_model)            
+            avgargs = {"dummy_model": fedargs.model,
+                       "slist": slist}
+            
+            global_model = he.enc_model_update(global_model)
+            global_model = he.federated_avg(client_model_updates, global_model, fedargs.agg_rule, **avgargs)
+        else:
+            global_model = fl.federated_avg(client_model_updates, global_model)
         log.modeldebug(global_model, "Epoch {} of {} : Server Update".format(epoch, fedargs.epochs))
         
         # Test, Plot and Log
@@ -147,12 +174,30 @@ for epoch in tqdm(range(fedargs.epochs)):
         tasks.cancel()
         fedargs.loop.run_forever()
         tasks.exception()
-
-    for client, update in zip(clients, updates):
+        
+    for client, update in zip(clients, updates):            
         client_details[client]['model_update'] = update
+
+        if fedargs.enc:
+            enc_update = he.enc_model_update(update)
+            client_details[client]['model_update'] = enc_update
+    
+    '''
+    if fedargs.enc:            
+        # Parallel Enc
+        tasks = [enc(client_details[client]['model_update']) for client in client_details]
+        try:
+            updates = fedargs.loop.run_until_complete(asyncio.gather(*tasks))
+        except KeyboardInterrupt as e:
+            log.error("Caught keyboard interrupt. Canceling tasks...")
+            tasks.cancel()
+            fedargs.loop.run_forever()
+            tasks.exception()
+            
+        for client, update in zip(clients, updates):            
+            client_details[client]['model_update'] = update
+    '''
+
     client_model_updates = {client: details["model_update"] for client, details in client_details.items()}
 
 print(time.time() - start_time)
-
-
-# <h1> End </h1>

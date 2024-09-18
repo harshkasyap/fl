@@ -1,12 +1,15 @@
 import base64
 import numpy as np
 
-import asyncio, inspect, os, sys
-from libs import agg
+import asyncio, inspect, itertools, os, sys, time
 import torch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
+from libs import agg, sim
+
 argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+
+split_arr_len = 4000
 
 def writeCkks(ckks_vec, filename):
     ser_ckks_vec = base64.b64encode(ckks_vec)
@@ -45,7 +48,8 @@ def decrypt(enc_arr):
 
 def serialise(enc_arr, filename):
     writeCkks(enc_querier.serialize(), "/../out/enc/"+ filename)
-    
+
+'''
 def enc_model_update(model_params):
     for key in model_params.keys():
         prepared_tensor = (torch.flatten(model_params[key]))
@@ -55,36 +59,72 @@ def enc_model_update(model_params):
     for key in np_params.keys():
         enc_model_params[key] = encrypt(np_params[key])
     return enc_model_params
+'''
 
-def FedAvg(list_enc_model_parmas):
+def enc_model_update(model_params):
+    start_time = time.time()
+    arr, slist = sim.get_net_arr(model_params)
+    enc_arr = []
+    
+    split_arr = np.array_split(arr, len(arr)/split_arr_len)
+
+    for each_arr in split_arr:
+        enc_arr.append(encrypt(each_arr))
+        
+    print(time.time() - start_time)    
+    return enc_arr
+
+def sub_model(base_model, model):
+    for index, (global_arr, model_arr) in enumerate(zip(base_model, model)):
+        base_model[index].sub_(model_arr)
+    return base_model
+
+def FedAvg(base_model, models, **kwargs):
     # init a template model
-    n_clients = len(list_enc_model_parmas)
-    temp_sample_number, temp_model_params = list_enc_model_parmas[0]
-    enc_global_params = copy.deepcopy(temp_model_params)
+    model_list = list(models.values())
+    n_clients = len(model_list)
+    weight = 1/n_clients
+    
+    dummy_model = kwargs["dummy_model"]
+    slist = kwargs["slist"]
+    
+    # Assign weight
+    '''
+    for index1, each_model in enumerate(model_list):
+        for index2, _ in enumerate(each_model):
+            model_list[index1][index2].mul_(weight)
+    print("here1")
+    '''
+    
+    # Add
+    agg_model = []
+    for index1, each_model in enumerate(model_list):
+        if index1 == 0:
+            agg_model = model_list[0]
+        else:
+            for index2, each_arr in enumerate(each_model):
+                agg_model[index2].add_(each_arr)
 
-    for i in range(n_clients):
-        list_enc_model_parmas[i] = list_enc_model_parmas[i][1]
-        for key in enc_global_params.keys():
-            list_enc_model_parmas[i][key] = fhe_core.ckks_vector_from(self.he_context,
-                                                                      list_enc_model_parmas[i][key])
-
-    for key in enc_global_params.keys():
-        for i in range(n_clients):
-            if i != 0:
-                # temp = list_enc_model_parmas[i][key] * weight_factors[key]
-                temp = list_enc_model_parmas[i][key]
-                list_enc_model_parmas[0][key] = list_enc_model_parmas[0][key] + temp
-
-    for key in enc_global_params.keys():
-        list_enc_model_parmas[0][key] = list_enc_model_parmas[0][key].serialize()
-
-    enc_global_params = list_enc_model_parmas[0]
-    return enc_global_params
-
-def federated_avg(models, base_model, rule):
+    # Sub
+    if base_model is not None:
+        agg_model = sub_model(base_model, agg_model)
+    
+    # decryption
+    dec_model = []
+    for index, each_arr in enumerate(agg_model):
+        dec_model.append(decrypt(each_arr))
+        
+    dec_model = np.array(list(itertools.chain.from_iterable(dec_model)))
+    dec_model /= n_clients
+        
+    model = sim.get_arr_net(dummy_model, dec_model, slist)
+    
+    return model
+    
+def federated_avg(models, base_model, rule = agg.Rule.FedAvg, **kwargs):
     if len(models) > 1:
         if rule is agg.Rule.FedAvg:
-            model = agg.FedAvg(base_model, models)
+            model = FedAvg(base_model, models, **kwargs)
         if rule is agg.Rule.FedVal:
             model = agg.FedVal(base_model, models, **kwargs)
         if rule is agg.Rule.FoolsGold:
