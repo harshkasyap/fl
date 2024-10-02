@@ -71,7 +71,7 @@ def enc_model_update(model_params):
     for each_arr in split_arr:
         enc_arr.append(encrypt(each_arr))
         
-    print(time.time() - start_time)    
+    #print(time.time() - start_time)    
     return enc_arr
 
 def sub_model(base_model, model):
@@ -87,15 +87,7 @@ def FedAvg(base_model, models, **kwargs):
     
     dummy_model = kwargs["dummy_model"]
     slist = kwargs["slist"]
-    
-    # Assign weight
-    '''
-    for index1, each_model in enumerate(model_list):
-        for index2, _ in enumerate(each_model):
-            model_list[index1][index2].mul_(weight)
-    print("here1")
-    '''
-    
+  
     # Add
     agg_model = []
     for index1, each_model in enumerate(model_list):
@@ -105,17 +97,20 @@ def FedAvg(base_model, models, **kwargs):
             for index2, each_arr in enumerate(each_model):
                 agg_model[index2].add_(each_arr)
 
+    # Weighted Avg
+    for index2, each_arr in enumerate(agg_model):
+        agg_model[index2].mul_(weight)
+
     # Sub
     if base_model is not None:
         agg_model = sub_model(base_model, agg_model)
-    
+
     # decryption
     dec_model = []
     for index, each_arr in enumerate(agg_model):
         dec_model.append(decrypt(each_arr))
         
     dec_model = np.array(list(itertools.chain.from_iterable(dec_model)))
-    dec_model /= n_clients
         
     model = sim.get_arr_net(dummy_model, dec_model, slist)
     
