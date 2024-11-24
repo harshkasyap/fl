@@ -9,7 +9,7 @@ argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()
 class FedArgs():
     def __init__(self):
         self.name = "client-x"
-        self.num_clients = 100
+        self.num_clients = 50
         self.epochs = 51
         self.local_rounds = 1
         self.client_batch_size = 32
@@ -33,6 +33,7 @@ class FedArgs():
         self.wait_to_consume = 10
         self.hdc_proj_len = 10000
         self.tb = SummaryWriter(argsdir + '/../out/runs/fl/test-run', comment="fl")
+        self.enc = False
         
 fedargs = FedArgs()
 
