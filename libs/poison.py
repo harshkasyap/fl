@@ -45,34 +45,111 @@ def fang_trmean(models, f, kn = Knowledge.PN):
     return models
 
 def insert_trojan_plus(instance):
-    instance = cv2.rectangle(instance, (13,26), (15,26), (2.8088), (1))
-    instance = cv2.rectangle(instance, (14,25), (14,27), (2.8088), (1))
+    instance = cv2.rectangle(instance, (13,26), (15,26), (255, 0, 0), (1))
+    instance = cv2.rectangle(instance, (14,25), (14,27), (255, 0, 0), (1))
     return instance
 
-def insert_trojan_pattern(instance):
-    instance = cv2.rectangle(instance, (2,2), (2,2), (2.8088), (1))
-    instance = cv2.rectangle(instance, (3,3), (3,3), (2.8088), (1))
-    instance = cv2.rectangle(instance, (4,2), (4,2), (2.8088), (1))
+def insert_trojan_pattern(instance, outer_epoch):
+    instance = cv2.rectangle(instance, (2,2), (2,2), (255, 0, 0), (1))
+    instance = cv2.rectangle(instance, (3,3), (3,3), (255, 0, 0), (1))
+    instance = cv2.rectangle(instance, (4,2), (4,2), (255, 0, 0), (1))
+    return instance
+
+def insert_trojan_pattern_gradual(instance, outer_epoch, total_outer_epochs=5):
+    """
+    Gradually creates a trojan pattern over multiple outer epochs by incrementally 
+    increasing the intensity of the pattern.
+
+    Parameters:
+    - instance: The image instance (assumed to be a numpy array).
+    - outer_epoch: Current outer epoch (1-indexed).
+    - total_outer_epochs: Total number of outer epochs to complete the pattern creation.
+
+    Returns:
+    - Modified image instance with the partially drawn trojan pattern.
+    """
+    # Ensure the outer_epoch does not exceed the total_outer_epochs
+    outer_epoch = min(outer_epoch, total_outer_epochs)
+
+    # Define the full pattern (coordinates and values)
+    pattern_coords = [
+        ((2, 2), (2, 2)),
+        ((3, 3), (3, 3)),
+        ((4, 2), (4, 2))
+    ]
+    full_value = 2.8088  # Final intensity of the pattern
+    thickness = 1
+
+    # Compute the intensity of the pattern for the current epoch
+    current_value = (outer_epoch / total_outer_epochs) * thickness
+
+    # Draw the rectangles with the current intensity
+    for coord_start, coord_end in pattern_coords:
+        instance = cv2.rectangle(instance, coord_start, coord_end, (255, 0, 0), current_value)
+
     return instance
 
 def insert_trojan_gap(instance):
-    instance = cv2.rectangle(instance, (0,2), (1,2), (2.8088), (1))
-    instance = cv2.rectangle(instance, (5,2), (6,2), (2.8088), (1))
+    instance = cv2.rectangle(instance, (0,2), (1,2), (255, 0, 0), (1))
+    instance = cv2.rectangle(instance, (5,2), (6,2), (255, 0, 0), (1))
     return instance
 
 def insert_trojan_size(instance):
-    instance = cv2.rectangle(instance, (0,2), (1,2), (2.8088), (1))
-    instance = cv2.rectangle(instance, (3,2), (4,2), (2.8088), (1))
+    instance = cv2.rectangle(instance, (0,2), (1,2), (255, 0, 0), (1))
+    instance = cv2.rectangle(instance, (3,2), (4,2), (255, 0, 0), (1))
     return instance
 
-def insert_trojan_pos(instance):
-    instance = cv2.rectangle(instance, (2,2), (3,2), (2.8088), (1))
-    instance = cv2.rectangle(instance, (2,4), (3,4), (2.8088), (1))
-    instance = cv2.rectangle(instance, (5,2), (6,2), (2.8088), (1))
-    instance = cv2.rectangle(instance, (5,4), (6,4), (2.8088), (1))
+def insert_trojan_pos_gradual(instance, outer_epoch, total_outer_epochs=10):
+    """
+    Gradually creates a trojan pattern over multiple outer epochs by incrementally 
+    increasing the intensity of the pattern.
+
+    Parameters:
+    - instance: The image instance (assumed to be a numpy array).
+    - outer_epoch: Current outer epoch (1-indexed).
+    - total_outer_epochs: Total number of outer epochs to complete the pattern creation.
+
+    Returns:
+    - Modified image instance with the partially drawn trojan pattern.
+    """
+    # Ensure the outer_epoch does not exceed the total_outer_epochs
+    outer_epoch = min(outer_epoch, total_outer_epochs)
+
+    # Define the full pattern (coordinates and values)
+    '''
+    pattern_coords = [
+        ((2, 2), (3, 2)),
+        ((2, 4), (3, 4)),
+        ((5, 2), (6, 2)),        
+        ((5, 4), (6, 4))
+    ]
+    '''
+    full_value = 2.8088  # Final intensity of the pattern
+    thickness = 10
+
+    # Compute the intensity of the pattern for the current epoch
+    current_value = min(outer_epoch, thickness)
+    
+    #print(current_value)
+
+    # Draw the rectangles with the current intensity
+    # for coord_start, coord_end in pattern_coords:
+        #instance = cv2.rectangle(instance, coord_start, coord_end, (255, 0, 0), current_value)
+    
+    instance = cv2.rectangle(instance, (0,0), (10,10), (255, 0, 0), (current_value))
     return instance
 
-def insert_trojan(client_data, target, func, poison_percent):
+def insert_trojan_pos(instance, outer_epoch):
+    '''
+    instance = cv2.rectangle(instance, (2,2), (3,2), (255, 0, 0), (5))
+    instance = cv2.rectangle(instance, (2,4), (3,4), (255, 0, 0), (5))
+    instance = cv2.rectangle(instance, (5,2), (6,2), (255, 0, 0), (5))
+    instance = cv2.rectangle(instance, (5,4), (6,4), (255, 0, 0), (5))
+    '''
+    instance = cv2.rectangle(instance, (0,0), (10,10), (255, 0, 0), (10))
+    return instance
+
+def insert_trojan(client_data, target, func, poison_percent, epoch = 0):
     client_data = list(client_data)
     total_occurences = len([1 for _, label in client_data])
     poison_count = poison_percent * total_occurences
@@ -84,8 +161,8 @@ def insert_trojan(client_data, target, func, poison_percent):
 
         instance = instance.squeeze().numpy()
 
-        # insert trojan type
-        instance = func(instance)
+        # insert trojan type, epoch is required for gradual
+        instance = func(instance, epoch)
 
         client_data[index][0] = torch.Tensor(instance).unsqueeze(0)
         client_data[index][1] = target

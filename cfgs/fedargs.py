@@ -90,10 +90,12 @@ def set_lfa_labels(flip_labels = None):
 
 # Backdoor
 backdoor_attack = {"is": False,
+                   "gradual": False,
                    "func": poison.insert_trojan_labels, # see other possible functions in poison python file like insert_trojan
-                   "trojan_func": poison.insert_trojan_pattern, # see other possible functions in poison python file
+                   "trojan_func": poison.insert_trojan_pos, # see other possible functions in poison python file
+                   "trojan_func_gradual": poison.insert_trojan_pos_gradual,
                    "source_label": 4,
-                   "target_label": 6,
+                   "target_label": 8,
                    "percent": -1,
                    "ratio": 0.06,
                    "data": None,
