@@ -9,19 +9,21 @@ from libs import agg, sim
 
 argsdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
+enc_type = "ckks"
 split_arr_len = 4000
+quant_factor = 1000000
 
-def writeCkks(ckks_vec, filename):
-    ser_ckks_vec = base64.b64encode(ckks_vec)
+def writeSerFile(enc_vec, filename):
+    ser_vec = base64.b64encode(enc_vec)
 
     with open(filename, 'wb') as f:
-        f.write(ser_ckks_vec)
+        f.write(ser_vec)
 
-def readCkks(filename):
+def readSerFile(filename):
     with open(filename, 'rb') as f:
-        ser_ckks_vec = f.read()
+        ser_vec = f.read()
     
-    return base64.b64decode(ser_ckks_vec)
+    return base64.b64decode(ser_vec)
 
 import tenseal as ts
 
@@ -30,24 +32,35 @@ coeff_mod_bit_sizes = [60, 40, 40, 60]
 global_scale= 2**40
 
 context = ts.context(
-            ts.SCHEME_TYPE.CKKS, 
+            ts.SCHEME_TYPE.CKKS,
             poly_modulus_degree = poly_modulus_degree,
             coeff_mod_bit_sizes = coeff_mod_bit_sizes
             )
+
+if enc_type == "bfv":
+    context = ts.context(ts.SCHEME_TYPE.BFV, poly_modulus_degree=8192, plain_modulus=1032193)
+
 context.generate_galois_keys()
 context.global_scale = global_scale
 
 public_context = context.serialize(save_public_key=False, save_secret_key=False, save_galois_keys=False, save_relin_keys=False)
 
 def encrypt(arr, batch = True):
-    enc_arr = ts.ckks_tensor(context, arr, None, batch)
+    if enc_type == "ckks":
+        enc_arr = ts.ckks_tensor(context, arr, None, batch)
+    if enc_type == "bfv":
+        enc_arr = ts.bfv_tensor(context, arr, batch)
     return enc_arr
 
 def decrypt(enc_arr):
-    return enc_arr.decrypt().tolist()
+    arr = np.array(enc_arr.decrypt().tolist())        
+    if enc_type == "bfv":
+        arr = arr / quant_factor
+    return arr
+    
 
 def serialise(enc_arr, filename):
-    writeCkks(enc_querier.serialize(), "/../out/enc/"+ filename)
+    writeSerFile(enc_querier.serialize(), "/../out/enc/"+ filename)
 
 '''
 def enc_model_update(model_params):
@@ -64,6 +77,11 @@ def enc_model_update(model_params):
 def enc_model_update(model_params):
     start_time = time.time()
     arr, slist = sim.get_net_arr(model_params)
+    
+    #quantise for bfv enc
+    if enc_type == "bfv":
+        arr = (arr * quant_factor).astype(int)
+    
     enc_arr = []
     
     split_arr = np.array_split(arr, len(arr)/split_arr_len)
@@ -97,10 +115,22 @@ def FedAvg(base_model, models, **kwargs):
             for index2, each_arr in enumerate(each_model):
                 agg_model[index2].add_(each_arr)
 
+
+    # decryption and weighted avg
+    dec_model = []
+    for index, each_arr in enumerate(agg_model):
+        dec_model.append(decrypt(each_arr) * weight)
+    dec_model = np.array(list(itertools.chain.from_iterable(dec_model)))        
+
+    # Sub    
+    base_model_arr, _ = sim.get_net_arr(base_model)        
+    dec_model = base_model_arr - dec_model
+    
+    '''
     # Weighted Avg
     for index2, each_arr in enumerate(agg_model):
         agg_model[index2].mul_(weight)
-
+    
     # Sub
     if base_model is not None:
         agg_model = sub_model(base_model, agg_model)
@@ -111,6 +141,7 @@ def FedAvg(base_model, models, **kwargs):
         dec_model.append(decrypt(each_arr))
         
     dec_model = np.array(list(itertools.chain.from_iterable(dec_model)))
+    '''
         
     model = sim.get_arr_net(dummy_model, dec_model, slist)
     
